@@ -18,7 +18,7 @@ const ThankYou: React.FC = () => {
           
           <div className="bg-blue-600/10 p-8 rounded-lg mb-8">
             <p className="text-xl mb-6">
-              Your clip has been submitted to Fetti Ent for review.
+              Your clip has been submitted to Collab Clips for review.
             </p>
             
             <p className="text-lg mb-6">
@@ -31,20 +31,20 @@ const ThankYou: React.FC = () => {
             
             <div className="flex flex-wrap justify-center gap-4 mb-6">
               <a 
-                href="https://www.instagram.com/fettient" 
+                href="https://www.instagram.com/collabclips" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-black hover:text-blue-600 transition-colors"
               >
-                @fettient
+                @collabclips
               </a>
               <a 
-                href="https://www.tiktok.com/@fettient" 
+                href="https://www.tiktok.com/@collabclips" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-black hover:text-blue-600 transition-colors"
               >
-                @fettient
+                @collabclips
               </a>
             </div>
           </div>

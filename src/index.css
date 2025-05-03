@@ -15,25 +15,25 @@
 
 @layer base {
   :root {
-    --background: 255 255 255;
-    --foreground: 0 0 0;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
 
-    --card: 255 255 255;
-    --card-foreground: 0 0 0;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 255 255 255;
-    --popover-foreground: 0 0 0;
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 221 100% 50%; /* Blue color for primary */
+    --primary: 177 100% 47%; /* Cyan color for primary */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 221 100% 40%; /* Darker blue for secondary */
+    --secondary: 330 100% 50%; /* Pink color for secondary */
     --secondary-foreground: 0 0% 100%;
 
     --muted: 0 0% 20%;
     --muted-foreground: 0 0% 70%;
 
-    --accent: 221 100% 50%;
+    --accent: 330 100% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -41,7 +41,7 @@
 
     --border: 0 0% 30%;
     --input: 0 0% 30%;
-    --ring: 221 100% 50%;
+    --ring: 177 100% 47%;
 
     --radius: 0.5rem;
   }
@@ -51,7 +51,7 @@
   }
 
   body {
-    @apply bg-white text-black font-['PoppinsRegular'];
+    @apply bg-black text-white font-['PoppinsRegular'];
     margin: 0;
     padding: 0;
   }
@@ -62,11 +62,18 @@
 
   .pattern-bg {
     background-image: 
-      repeating-linear-gradient(45deg, #0052cc 0, #0052cc 2px, transparent 2px, transparent 10px),
-      repeating-linear-gradient(135deg, #0052cc 0, #0052cc 2px, transparent 2px, transparent 10px);
+      repeating-linear-gradient(45deg, #111 0, #111 2px, transparent 2px, transparent 10px),
+      repeating-linear-gradient(135deg, #111 0, #111 2px, transparent 2px, transparent 10px);
   }
 
   .clip-arrow {
     clip-path: polygon(50% 100%, 0 0, 100% 0);
+  }
+
+  .arrow {
+    @apply w-0 h-0 mx-auto;
+    border-left: 20px solid transparent;
+    border-right: 20px solid transparent;
+    border-top: 20px solid #00e5ff;
   }
 }

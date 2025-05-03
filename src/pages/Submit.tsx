@@ -65,12 +65,12 @@ const Submit: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="flex flex-col min-h-screen">
       <Header />
       
       <main className="flex-grow container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto bg-blue-600/10 p-6 rounded-lg">
-          <h1 className="text-3xl font-bold mb-6 text-center text-black">Submit Your Clip</h1>
+        <div className="max-w-2xl mx-auto bg-fetti-gray/20 p-6 rounded-lg">
+          <h1 className="text-3xl font-bold mb-6 text-center text-fetti-white">Submit Your Clip</h1>
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -81,7 +81,7 @@ const Submit: React.FC = () => {
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your name" {...field} className="bg-white border-blue-200" />
+                      <Input placeholder="Your name" {...field} className="bg-fetti-black/60 border-fetti-gray" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -95,7 +95,7 @@ const Submit: React.FC = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="Your email address" {...field} className="bg-white border-blue-200" />
+                      <Input type="email" placeholder="Your email address" {...field} className="bg-fetti-black/60 border-fetti-gray" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -109,7 +109,7 @@ const Submit: React.FC = () => {
                   <FormItem>
                     <FormLabel>Instagram Handle (Optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="@yourusername" {...field} className="bg-white border-blue-200" />
+                      <Input placeholder="@yourusername" {...field} className="bg-fetti-black/60 border-fetti-gray" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -123,7 +123,7 @@ const Submit: React.FC = () => {
                   <FormItem>
                     <FormLabel>Clip Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter a title for your clip" {...field} className="bg-white border-blue-200" />
+                      <Input placeholder="Enter a title for your clip" {...field} className="bg-fetti-black/60 border-fetti-gray" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -137,7 +137,7 @@ const Submit: React.FC = () => {
                   <FormItem>
                     <FormLabel>Clip Description (Optional)</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Describe your clip" {...field} className="bg-white border-blue-200" />
+                      <Textarea placeholder="Describe your clip" {...field} className="bg-fetti-black/60 border-fetti-gray" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -151,7 +151,7 @@ const Submit: React.FC = () => {
                   <FormItem>
                     <FormLabel>Clip URL</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://youtu.be/..." {...field} className="bg-white border-blue-200" />
+                      <Input placeholder="https://youtu.be/..." {...field} className="bg-fetti-black/60 border-fetti-gray" />
                     </FormControl>
                     <p className="text-xs text-muted-foreground mt-1">
                       Share a link to your clip on YouTube, TikTok, Instagram, or any video platform
@@ -174,7 +174,7 @@ const Submit: React.FC = () => {
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel>
-                        I agree to the <a href="/terms" className="text-blue-700 hover:underline">terms and conditions</a>
+                        I agree to the <a href="/terms" className="text-fetti-red hover:underline">terms and conditions</a>
                       </FormLabel>
                       <FormMessage />
                     </div>
@@ -185,7 +185,7 @@ const Submit: React.FC = () => {
               <Button 
                 type="submit" 
                 disabled={submitting}
-                className="w-full bg-blue-700 hover:bg-blue-800 py-6 text-lg font-bold"
+                className="w-full bg-fetti-red hover:bg-red-700 py-6 text-lg font-bold"
               >
                 {submitting ? "Submitting..." : "SUBMIT CLIP"}
               </Button>
