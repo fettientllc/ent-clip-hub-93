@@ -8,7 +8,7 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4">
         <Link to="/">
           <div className="flex justify-center">
-            <div className="w-32 h-32 flex items-center justify-center">
+            <div className="w-32 h-32 rounded-full bg-gradient-to-r from-cyan-500 to-pink-500 flex items-center justify-center">
               <div className="text-center">
                 <div className="text-white text-3xl font-bold" style={{
                   textShadow: '2px 2px 0 #00e5ff, -2px -2px 0 #ff0047',
