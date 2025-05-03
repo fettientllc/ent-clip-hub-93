@@ -23,30 +23,38 @@ const Index: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-white">
       <Header />
       
-      <main className="flex-grow flex flex-col items-center justify-center py-12 px-4 text-center">
-        <h1 className="text-3xl md:text-5xl font-bold mb-8 text-fetti-white">
-          SUBMIT YOUR CLIP TO FETTI ENT
-        </h1>
+      <main className="flex-grow flex flex-col items-center justify-center py-8 px-4 text-center">
+        <div className="w-full bg-blue-600 pt-16 pb-20 mb-6 relative">
+          <div className="absolute inset-0 opacity-10">
+            <div className="pattern-bg w-full h-full" />
+          </div>
+          
+          <h1 className="text-3xl md:text-5xl font-bold text-white px-4">
+            SUBMIT YOUR CLIP TO<br />COLLAB CLIPS
+          </h1>
+        </div>
         
-        <p className="text-xl mb-6 text-fetti-white">
-          Check our Instagram to see if your clip is featured!
-        </p>
-        
-        <div className="arrow mb-6 animate-bounce"></div>
-        
-        <p className="text-xl mb-10 text-fetti-white">
-          Your clip could be seen by millions!
-        </p>
-        
-        <Button 
-          onClick={handleSubmitClick}
-          className="bg-fetti-red hover:bg-red-700 text-fetti-white text-xl font-bold py-6 px-10 rounded-md transition-all duration-200 transform hover:scale-105 uppercase"
-        >
-          SUBMIT YOUR CLIP!
-        </Button>
+        <div className="max-w-lg w-full px-6">
+          <p className="text-xl mb-6 text-black">
+            Check our Instagram to see if your clip is featured!
+          </p>
+          
+          <div className="w-24 h-24 bg-blue-600 mx-auto mb-6 clip-arrow"></div>
+          
+          <p className="text-xl mb-10 text-black">
+            Your clip could be seen by millions!
+          </p>
+          
+          <Button 
+            onClick={handleSubmitClick}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold py-6 px-10 w-full rounded-md transition-all duration-200 transform hover:scale-105 uppercase"
+          >
+            SUBMIT YOUR CLIP!
+          </Button>
+        </div>
       </main>
       
       <Footer />

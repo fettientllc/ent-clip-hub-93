@@ -38,31 +38,31 @@ const AgeModal: React.FC<AgeModalProps> = ({ isOpen, onClose, onAgeVerified }) =
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-fetti-black border border-fetti-gray text-fetti-white max-w-md w-full">
+      <DialogContent className="bg-white border border-gray-300 text-black max-w-md w-full">
         {!showUnderAgeContent ? (
           <div className="text-center py-4">
             <h2 className="text-2xl font-bold mb-6">How old are you?</h2>
             <div className="grid gap-4">
               <Button 
-                className="bg-fetti-blue hover:bg-blue-700 text-lg py-6"
+                className="bg-blue-600 hover:bg-blue-700 text-lg py-6"
                 onClick={() => handleAgeSelection('under12')}
               >
                 12 and Under
               </Button>
               <Button 
-                className="bg-fetti-blue hover:bg-blue-700 text-lg py-6"
+                className="bg-blue-600 hover:bg-blue-700 text-lg py-6"
                 onClick={() => handleAgeSelection('13to17')}
               >
                 13 to 17
               </Button>
               <Button 
-                className="bg-fetti-red hover:bg-red-700 text-lg py-6"
+                className="bg-blue-600 hover:bg-blue-700 text-lg py-6"
                 onClick={() => handleAgeSelection('over18')}
               >
                 18 and Over
               </Button>
               <Button 
-                className="bg-fetti-gray hover:bg-gray-700 text-lg py-6"
+                className="bg-gray-300 hover:bg-gray-400 text-black text-lg py-6"
                 onClick={onClose}
               >
                 Cancel
@@ -73,10 +73,10 @@ const AgeModal: React.FC<AgeModalProps> = ({ isOpen, onClose, onAgeVerified }) =
           <div className="text-center py-4">
             <h2 className="text-2xl font-bold mb-6">You must be over 13 years old to submit a clip.</h2>
             <Button 
-              className="bg-fetti-red hover:bg-red-700 text-lg py-6 w-full"
+              className="bg-blue-600 hover:bg-blue-700 text-lg py-6 w-full"
               onClick={goToHome}
             >
-              GO TO FETTI ENT!
+              GO TO COLLAB CLIPS!
             </Button>
           </div>
         )}

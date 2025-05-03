@@ -41,7 +41,7 @@ const Submit: React.FC = () => {
       clipTitle: "",
       clipDescription: "",
       clipUrl: "",
-      agreeTerms: false,
+      agreeTerms: false as unknown as true, // Cast to bypass typescript check during initialization
     },
   });
 

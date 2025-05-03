@@ -25,12 +25,9 @@ export default {
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
-				fetti: {
-					red: "#FF3131",
-					blue: "#1E90FF",
-					black: "#121212",
-					gray: "#333333",
-					white: "#FFFFFF",
+				blue: {
+					600: '#0040ff',
+					700: '#0035db',
 				},
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',

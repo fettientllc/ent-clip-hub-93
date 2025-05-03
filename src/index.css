@@ -15,33 +15,33 @@
 
 @layer base {
   :root {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 98%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
 
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
 
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
 
-    --primary: 0 76% 60%; /* Red color for primary */
-    --primary-foreground: 0 0% 98%;
+    --primary: 223 100% 50%; /* Blue color for primary */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 100% 56%; /* Blue color for secondary */
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 223 100% 50%; /* Blue color for secondary */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 70%;
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 30%;
 
-    --accent: 210 100% 56%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 223 100% 50%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 210 100% 56%;
+    --border: 0 0% 80%;
+    --input: 0 0% 80%;
+    --ring: 223 100% 50%;
 
     --radius: 0.5rem;
   }
@@ -51,7 +51,7 @@
   }
 
   body {
-    @apply bg-fetti-black text-fetti-white font-['PoppinsRegular'];
+    @apply bg-white text-black font-['PoppinsRegular'];
     margin: 0;
     padding: 0;
   }
@@ -60,10 +60,20 @@
     @apply font-['PoppinsBold'];
   }
 
+  .pattern-bg {
+    background-image: 
+      repeating-linear-gradient(45deg, white 0, white 2px, transparent 2px, transparent 10px),
+      repeating-linear-gradient(135deg, white 0, white 2px, transparent 2px, transparent 10px);
+  }
+
+  .clip-arrow {
+    clip-path: polygon(50% 100%, 0 0, 100% 0);
+  }
+
   .arrow {
     @apply w-0 h-0 mx-auto;
-    border-left: 15px solid transparent;
-    border-right: 15px solid transparent;
-    border-top: 15px solid #FF3131;
+    border-left: 20px solid transparent;
+    border-right: 20px solid transparent;
+    border-top: 20px solid #0040ff;
   }
 }
