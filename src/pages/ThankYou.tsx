@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Check } from 'lucide-react';
 
 const ThankYou: React.FC = () => {
   return (
@@ -12,21 +11,17 @@ const ThankYou: React.FC = () => {
       <Header />
       
       <main className="flex-grow flex flex-col items-center justify-center py-12 px-4 text-center">
-        <div className="max-w-2xl">
-          <div className="rounded-full bg-green-100 w-16 h-16 mx-auto mb-6 flex items-center justify-center">
-            <Check className="h-8 w-8 text-green-600" />
-          </div>
-          
-          <h1 className="text-3xl md:text-4xl font-bold mb-6 text-gray-800">
-            Thank You For Your Submission!
+        <div className="animate-scale-in max-w-2xl">
+          <h1 className="text-3xl md:text-5xl font-bold mb-6 text-black">
+            THANK YOU FOR YOUR SUBMISSION!
           </h1>
           
-          <div className="bg-blue-50 p-8 rounded-lg mb-8">
-            <p className="text-xl mb-6 text-gray-700">
-              Your clip has been submitted to Fetti Ent for review.
+          <div className="bg-blue-600/10 p-8 rounded-lg mb-8">
+            <p className="text-xl mb-6">
+              Your clip has been submitted to Collab Clips for review.
             </p>
             
-            <p className="text-lg mb-6 text-gray-600">
+            <p className="text-lg mb-6">
               If your clip is selected, it will be featured on our social media platforms!
             </p>
             
@@ -36,20 +31,20 @@ const ThankYou: React.FC = () => {
             
             <div className="flex flex-wrap justify-center gap-4 mb-6">
               <a 
-                href="https://www.instagram.com/fettient" 
+                href="https://www.instagram.com/collabclips" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 transition-colors"
+                className="text-black hover:text-blue-600 transition-colors"
               >
-                @fettient
+                @collabclips
               </a>
               <a 
-                href="https://www.tiktok.com/@fettient" 
+                href="https://www.tiktok.com/@collabclips" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 transition-colors"
+                className="text-black hover:text-blue-600 transition-colors"
               >
-                @fettient
+                @collabclips
               </a>
             </div>
           </div>
@@ -57,7 +52,7 @@ const ThankYou: React.FC = () => {
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button 
               asChild
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-lg py-6 px-8"
+              className="bg-gray-300 hover:bg-gray-400 text-black text-lg py-6 px-8"
             >
               <Link to="/">
                 RETURN HOME
