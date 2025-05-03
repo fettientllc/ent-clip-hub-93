@@ -70,16 +70,16 @@ const Submit: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
+    <div className="flex flex-col min-h-screen bg-white">
       <Header />
       
       <main className="flex-grow container mx-auto px-4 py-6 max-w-md">
-        <div className="bg-white rounded-lg shadow-sm">
+        <div>
           <div className="p-6">
-            <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Submit Your Clip</h1>
+            <h1 className="text-3xl font-bold text-center text-gray-900 mb-6">Submit Your Clip</h1>
             
-            <div className="border-t border-gray-200 pt-6">
-              <p className="text-center text-gray-600 mb-6">
+            <div className="pt-6">
+              <p className="text-center text-gray-700 mb-6">
                 Your clip will be submitted to Fetti Ent,<br />our trusted content licensing partner.
               </p>
               
@@ -103,14 +103,14 @@ const Submit: React.FC = () => {
                             >
                               <ToggleGroupItem 
                                 value="upload" 
-                                className={`flex-1 py-2 px-4 rounded-l-full ${field.value === 'upload' ? 'bg-blue-600 text-white' : 'text-gray-700'}`}
+                                className={`flex-1 py-2 px-4 rounded-l-full ${field.value === 'upload' ? 'bg-blue-600 text-white' : 'text-gray-900'}`}
                               >
                                 Upload
                               </ToggleGroupItem>
-                              <div className="flex items-center justify-center px-2 text-gray-600">OR</div>
+                              <div className="flex items-center justify-center px-2 text-gray-700">OR</div>
                               <ToggleGroupItem 
                                 value="link" 
-                                className={`flex-1 py-2 px-4 rounded-r-full ${field.value === 'link' ? 'bg-blue-600 text-white' : 'text-gray-700'}`}
+                                className={`flex-1 py-2 px-4 rounded-r-full ${field.value === 'link' ? 'bg-blue-600 text-white' : 'text-gray-900'}`}
                               >
                                 Paste a Link
                               </ToggleGroupItem>
@@ -123,7 +123,7 @@ const Submit: React.FC = () => {
                   
                   {/* Upload Form */}
                   {watchSubmitType === "upload" && (
-                    <div className="bg-gray-200 p-6 rounded flex flex-col items-center justify-center">
+                    <div className="bg-gray-100 p-6 rounded flex flex-col items-center justify-center">
                       <Button 
                         type="button" 
                         variant="secondary"
@@ -142,13 +142,13 @@ const Submit: React.FC = () => {
                         name="clipPlatform"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-medium">Clip Platform *</FormLabel>
+                            <FormLabel className="font-medium text-gray-900">Clip Platform *</FormLabel>
                             <Select 
                               onValueChange={field.onChange} 
                               defaultValue={field.value}
                             >
                               <FormControl>
-                                <SelectTrigger className="bg-white border-gray-300">
+                                <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                                   <SelectValue placeholder="Please select a clip platform.." />
                                 </SelectTrigger>
                               </FormControl>
@@ -170,9 +170,9 @@ const Submit: React.FC = () => {
                         name="clipUrl"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-medium">Clip URL *</FormLabel>
+                            <FormLabel className="font-medium text-gray-900">Clip URL *</FormLabel>
                             <FormControl>
-                              <Input placeholder="https://..." {...field} className="bg-white border-gray-300" />
+                              <Input placeholder="https://..." {...field} className="bg-white border-gray-300 text-gray-900" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -181,13 +181,13 @@ const Submit: React.FC = () => {
                     </>
                   )}
                   
-                  <p className="text-center text-gray-600 italic text-sm">
+                  <p className="text-center text-gray-700 italic text-sm">
                     Please submit unedited clips without text or music
                   </p>
                   
                   <div>
-                    <h3 className="font-medium text-gray-700 mb-2">Don't submit clips that:</h3>
-                    <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                    <h3 className="font-medium text-gray-900 mb-2">Don't submit clips that:</h3>
+                    <ul className="list-disc pl-6 text-gray-700 space-y-1">
                       <li>Aren't yours</li>
                       <li>Include music or text</li>
                       <li>Violate copyright laws</li>
@@ -200,9 +200,9 @@ const Submit: React.FC = () => {
                     name="location"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-medium">Where was this filmed?</FormLabel>
+                        <FormLabel className="font-medium text-gray-900">Where was this filmed?</FormLabel>
                         <FormControl>
-                          <Input placeholder="Los Angeles, CA" {...field} className="bg-white border-gray-300" />
+                          <Input placeholder="Los Angeles, CA" {...field} className="bg-white border-gray-300 text-gray-900" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -215,7 +215,7 @@ const Submit: React.FC = () => {
                     name="hasDescription"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-medium">Add clip description? (optional)</FormLabel>
+                        <FormLabel className="font-medium text-gray-900">Add clip description? (optional)</FormLabel>
                         <FormControl>
                           <div className="rounded-full overflow-hidden">
                             <ToggleGroup 
@@ -228,13 +228,13 @@ const Submit: React.FC = () => {
                             >
                               <ToggleGroupItem 
                                 value="yes" 
-                                className={`py-1 px-6 rounded-full ${field.value === 'yes' ? 'bg-blue-600 text-white' : 'text-gray-700'}`}
+                                className={`py-1 px-6 rounded-full ${field.value === 'yes' ? 'bg-blue-600 text-white' : 'text-gray-900'}`}
                               >
                                 Yes
                               </ToggleGroupItem>
                               <ToggleGroupItem 
                                 value="no" 
-                                className={`py-1 px-6 rounded-full ${field.value === 'no' ? 'bg-blue-600 text-white' : 'text-gray-700'}`}
+                                className={`py-1 px-6 rounded-full ${field.value === 'no' ? 'bg-blue-600 text-white' : 'text-gray-900'}`}
                               >
                                 No
                               </ToggleGroupItem>
@@ -252,11 +252,11 @@ const Submit: React.FC = () => {
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-medium">Tell us about your clip</FormLabel>
+                          <FormLabel className="font-medium text-gray-900">Tell us about your clip</FormLabel>
                           <FormControl>
-                            <Textarea {...field} className="bg-white border-gray-300 min-h-[100px]" />
+                            <Textarea {...field} className="bg-white border-gray-300 min-h-[100px] text-gray-900" />
                           </FormControl>
-                          <p className="text-sm text-gray-500 mt-1">
+                          <p className="text-sm text-gray-700 mt-1">
                             A detailed description gives your clip a better chance of being featured
                           </p>
                           <FormMessage />
@@ -271,7 +271,7 @@ const Submit: React.FC = () => {
                     name="isRecorder"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-medium">Did you record this clip?</FormLabel>
+                        <FormLabel className="font-medium text-gray-900">Did you record this clip?</FormLabel>
                         <FormControl>
                           <div className="rounded-full overflow-hidden">
                             <ToggleGroup 
@@ -284,13 +284,13 @@ const Submit: React.FC = () => {
                             >
                               <ToggleGroupItem 
                                 value="yes" 
-                                className={`py-1 px-6 rounded-full ${field.value === 'yes' ? 'bg-blue-600 text-white' : 'text-gray-700'}`}
+                                className={`py-1 px-6 rounded-full ${field.value === 'yes' ? 'bg-blue-600 text-white' : 'text-gray-900'}`}
                               >
                                 Yes
                               </ToggleGroupItem>
                               <ToggleGroupItem 
                                 value="no" 
-                                className={`py-1 px-6 rounded-full ${field.value === 'no' ? 'bg-blue-600 text-white' : 'text-gray-700'}`}
+                                className={`py-1 px-6 rounded-full ${field.value === 'no' ? 'bg-blue-600 text-white' : 'text-gray-900'}`}
                               >
                                 No
                               </ToggleGroupItem>
@@ -308,9 +308,9 @@ const Submit: React.FC = () => {
                       name="whoRecorded"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-medium">Who recorded this clip? *</FormLabel>
+                          <FormLabel className="font-medium text-gray-900">Who recorded this clip? *</FormLabel>
                           <FormControl>
-                            <Input {...field} className="bg-white border-gray-300" />
+                            <Input {...field} className="bg-white border-gray-300 text-gray-900" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -324,7 +324,7 @@ const Submit: React.FC = () => {
                     name="wantCredit"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-medium">Want clip credit? (optional)</FormLabel>
+                        <FormLabel className="font-medium text-gray-900">Want clip credit? (optional)</FormLabel>
                         <FormControl>
                           <div className="rounded-full overflow-hidden">
                             <ToggleGroup 
@@ -337,13 +337,13 @@ const Submit: React.FC = () => {
                             >
                               <ToggleGroupItem 
                                 value="yes" 
-                                className={`py-1 px-6 rounded-full ${field.value === 'yes' ? 'bg-blue-600 text-white' : 'text-gray-700'}`}
+                                className={`py-1 px-6 rounded-full ${field.value === 'yes' ? 'bg-blue-600 text-white' : 'text-gray-900'}`}
                               >
                                 Yes
                               </ToggleGroupItem>
                               <ToggleGroupItem 
                                 value="no" 
-                                className={`py-1 px-6 rounded-full ${field.value === 'no' ? 'bg-blue-600 text-white' : 'text-gray-700'}`}
+                                className={`py-1 px-6 rounded-full ${field.value === 'no' ? 'bg-blue-600 text-white' : 'text-gray-900'}`}
                               >
                                 No
                               </ToggleGroupItem>
@@ -362,13 +362,13 @@ const Submit: React.FC = () => {
                         name="creditPlatform"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-medium">Platform</FormLabel>
+                            <FormLabel className="font-medium text-gray-900">Platform</FormLabel>
                             <Select 
                               onValueChange={field.onChange} 
                               defaultValue={field.value}
                             >
                               <FormControl>
-                                <SelectTrigger className="bg-white border-gray-300">
+                                <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                                   <SelectValue placeholder="Please select.." />
                                 </SelectTrigger>
                               </FormControl>
@@ -389,11 +389,11 @@ const Submit: React.FC = () => {
                         name="creditUsername"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-medium">Handle or Username to credit</FormLabel>
+                            <FormLabel className="font-medium text-gray-900">Handle or Username to credit</FormLabel>
                             <FormControl>
-                              <Input {...field} className="bg-white border-gray-300" />
+                              <Input {...field} className="bg-white border-gray-300 text-gray-900" />
                             </FormControl>
-                            <p className="text-sm text-gray-500 mt-1">
+                            <p className="text-sm text-gray-700 mt-1">
                               We'd like to give you credit if your clip is featured.
                             </p>
                             <FormMessage />
