@@ -93,7 +93,7 @@ const Submit: React.FC = () => {
           <h1 className="text-3xl font-bold text-center text-gray-900 mb-4">Submit Your Clip</h1>
           
           <p className="text-center text-gray-700 mb-6">
-            Your clip will be submitted to Collab Inc., our trusted content licensing partner.
+            Your clip will be submitted to FETTI ENT, our trusted content licensing partner.
           </p>
           
           <Form {...form}>
@@ -399,12 +399,12 @@ const Submit: React.FC = () => {
               
               <div className="text-sm text-gray-600 mt-4">
                 <p>
-                  *Collab is our trusted content licensing partner.
+                  *FETTI ENT is our trusted content licensing partner.
                 </p>
                 <p className="mt-2">
                   By signing, I agree that all information in this form is true and accurate.
                   <span className="font-bold"> I understand I am granting an exclusive license to the content submitted</span>, and that
-                  Collab may represent this content on my behalf.
+                  FETTI ENT may represent this content on my behalf.
                 </p>
                 <p className="mt-2">
                   I also understand that there is no guarantee of revenue unless my content is commercially licensed to an
@@ -482,7 +482,7 @@ const Submit: React.FC = () => {
                         htmlFor="newsletter"
                         className="text-sm font-normal leading-none text-gray-700"
                       >
-                        Keep me in the know about all things Collab Clips.
+                        Keep me in the know about all things FETTI ENT.
                       </Label>
                     </div>
                   </FormItem>
@@ -500,7 +500,7 @@ const Submit: React.FC = () => {
           </Form>
           
           <div className="text-center mt-6 text-sm text-gray-600">
-            Powered by <span className="font-bold text-red-600">collab</span>
+            Powered by <span className="font-bold text-blue-600">FETTI ENT</span>
           </div>
         </div>
       </main>
