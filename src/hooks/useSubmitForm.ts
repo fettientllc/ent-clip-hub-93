@@ -3,12 +3,13 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
-import { formSchema, SubmitFormValues } from './form/formSchema';
+import { formSchema } from './form/formSchema';
+import type { SubmitFormValues } from './form/formSchema';
 import { useFormDataBuilder } from './form/useFormDataBuilder';
 import { useFormUploader } from './form/useFormUploader';
 import { useVideoHandler } from './form/useVideoHandler';
 
-export { SubmitFormValues } from './form/formSchema';
+export type { SubmitFormValues } from './form/formSchema';
 
 export const useSubmitForm = () => {
   const [submitting, setSubmitting] = useState(false);
