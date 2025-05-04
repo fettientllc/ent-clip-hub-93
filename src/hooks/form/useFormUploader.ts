@@ -39,7 +39,6 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
         title: "You're offline",
         description: "Your connection appears to be down. Please check your internet connection.",
         variant: "destructive",
-        duration: 10000,
       });
     };
     
@@ -89,6 +88,12 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
     };
   }, [networkStatus, toast]);
 
+  // Updated API endpoint with correct path
+  const API_URL = 'https://dropbox-form-backend.onrender.com/submit';
+  
+  // Render free tier typically times out after ~60 seconds
+  const RENDER_TIMEOUT_WARNING = 50000; // 50 seconds - warn before Render times out
+  
   const executeUpload = (uploadFormData: FormData) => {
     // Check if we're offline before even starting
     if (!navigator.onLine) {
@@ -107,18 +112,29 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
     
     const xhr = new XMLHttpRequest();
     
-    // Set up the request with a longer timeout
-    xhr.open('POST', 'https://dropbox-form-backend.onrender.com', true);
+    // Update the URL to use the correct endpoint
+    xhr.open('POST', API_URL, true);
     xhr.timeout = UPLOAD_TIMEOUT;
     
     // Store controller for cleanup
     let warningTimeoutId: number | undefined;
     let speedUpdateId: number | undefined;
     let connectionCheckId: number | undefined;
+    let renderTimeoutWarningId: number | undefined;
     
     // Initialize time tracking
     lastLoaded = 0;
     lastTime = Date.now();
+    
+    // Add specific warning for Render free tier timeout
+    renderTimeoutWarningId = window.setTimeout(() => {
+      toast({
+        title: "Server timeout risk",
+        description: "The server might time out soon (free tier limitation). If upload fails, try a smaller file.",
+        variant: "warning",
+        duration: 10000, // 10 seconds
+      });
+    }, RENDER_TIMEOUT_WARNING);
     
     // Periodically check if connection was lost during upload
     connectionCheckId = window.setInterval(() => {
@@ -229,14 +245,24 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
     // Define success and error handlers
     xhr.onload = function() {
       clearTimeout(warningTimeoutId);
+      clearTimeout(renderTimeoutWarningId);
       clearInterval(speedUpdateId);
       clearInterval(connectionCheckId);
+      
       if (xhr.status >= 200 && xhr.status < 300) {
         console.log("Form submitted successfully");
         onSuccess();
         toast({
           title: "Submission successful!",
           description: "Your clip has been uploaded successfully.",
+        });
+      } else if (xhr.status === 202) {
+        // Handle 202 Accepted response (async processing)
+        console.log("Form accepted for processing");
+        onSuccess();
+        toast({
+          title: "Submission accepted!",
+          description: "Your clip has been received and is being processed.",
         });
       } else {
         console.error(`Submission error: ${xhr.status}`, xhr.responseText);
@@ -262,34 +288,33 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
     
     xhr.onerror = function() {
       clearTimeout(warningTimeoutId);
+      clearTimeout(renderTimeoutWarningId);
       clearInterval(speedUpdateId);
       clearInterval(connectionCheckId);
       console.error("Network error during submission");
       
       let errorMessage = "Network error. Please check your connection and try again.";
-      if (networkStatus === 'offline') {
-        errorMessage = "You appear to be offline. Please check your internet connection and try again.";
-      } else if (networkStatus === 'slow') {
-        errorMessage = "Your connection is unstable or very slow. Please try using a more stable internet connection.";
-      }
+      // Add specific message about Render free tier limitations
+      errorMessage = "Upload likely timed out due to server limitations. Try a smaller file or try again later.";
       
       onError(errorMessage);
       toast({
         title: "Submission failed",
-        description: errorMessage,
+        description: "The server may have timed out (this is a free tier limitation). Try uploading a smaller file.",
         variant: "destructive",
       });
     };
     
     xhr.ontimeout = function() {
       clearTimeout(warningTimeoutId);
+      clearTimeout(renderTimeoutWarningId);
       clearInterval(speedUpdateId);
       clearInterval(connectionCheckId);
       console.error("Request timed out");
-      onError("The upload timed out. Please try again with a smaller file or better connection.");
+      onError("The upload timed out. The server has a ~60 second timeout limit. Try a smaller file (under 5MB).");
       toast({
-        title: "Submission timeout",
-        description: "The upload timed out after 10 minutes. Please try again with a smaller file or better connection.",
+        title: "Server timeout",
+        description: "The server has a ~60 second timeout limit (free tier). Try a smaller file (under 5MB).",
         variant: "destructive",
       });
     };
@@ -297,6 +322,7 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
     // Set up abort handler
     xhr.onabort = function() {
       clearTimeout(warningTimeoutId);
+      clearTimeout(renderTimeoutWarningId);
       clearInterval(speedUpdateId);
       clearInterval(connectionCheckId);
       console.error("Request aborted");
@@ -313,6 +339,10 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
     
     return () => {
       // Cleanup function
+      if (renderTimeoutWarningId) {
+        clearTimeout(renderTimeoutWarningId);
+      }
+      
       if (warningTimeoutId) {
         clearTimeout(warningTimeoutId);
       }

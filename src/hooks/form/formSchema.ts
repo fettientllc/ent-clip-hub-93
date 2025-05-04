@@ -32,6 +32,12 @@ export const formSchema = z.object({
       {
         message: "Video file size must be less than 500MB",
       }
+    )
+    .refine(
+      file => file !== undefined && file !== null && file instanceof File && file.size <= 10 * 1024 * 1024,
+      {
+        message: "For reliable uploads with the current server, we recommend files under 10MB",
+      }
     ),
 });
 

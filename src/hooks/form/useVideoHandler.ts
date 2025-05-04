@@ -50,6 +50,15 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
       setVideoFileName(null);
       return;
     }
+    
+    // New check for the Render free tier timeouts
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Server limitation warning",
+        description: "Files over 5MB may time out due to server limitations. Consider using a smaller file.",
+        duration: 8000,
+      });
+    }
 
     console.log(`Selected video: ${file.name} (${Math.round(file.size / 1024 / 1024)} MB)`);
     
@@ -59,10 +68,17 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
     setVideoFileName(file.name);
     
     // Display appropriate message based on file size
-    if (file.size > 100 * 1024 * 1024) {
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "⚠️ Upload likely to fail",
+        description: "Due to server limitations (free tier), files over 10MB are likely to time out. Consider compressing your video first.",
+        duration: 10000,
+      });
+    } else if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "Large file detected",
-        description: "This is a large video file. Upload may take several minutes depending on your connection speed.",
+        description: "This file may take longer to upload and could time out. For best results, use files under 5MB.",
+        duration: 8000,
       });
     }
   };

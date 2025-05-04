@@ -59,7 +59,7 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                   <span className={`font-medium ${hasError ? 'text-red-500' : 'text-blue-600'}`}>
                     {hasError ? 'Please upload a video file' : 'Click to upload video'}
                   </span>
-                  <span className="text-xs text-gray-500">(Max size: 500MB)</span>
+                  <span className="text-xs text-gray-500">(Recommended: under 5MB for reliable uploads)</span>
                   <input 
                     id="video-upload"
                     ref={fileInputRef}
@@ -68,7 +68,6 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                     accept="video/*"
                     onChange={(e) => {
                       handleVideoChange(e);
-                      // Fix: Pass the file object directly to onChange instead of the event
                       onChange(e.target.files?.[0]);
                     }}
                     {...rest}
