@@ -145,8 +145,8 @@ const Submit: React.FC = () => {
                 <Progress className="h-2" value={uploadProgress} />
                 
                 {timeoutWarning && (
-                  <Alert variant="warning" className="mt-2">
-                    <AlertTriangle className="h-4 w-4" />
+                  <Alert className="mt-2 border-amber-300 bg-amber-50 text-amber-800">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
                     <AlertDescription>
                       Upload is taking longer than expected. Large files may take several minutes.
                     </AlertDescription>
