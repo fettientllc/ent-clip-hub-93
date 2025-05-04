@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Submit from "./pages/Submit";
 import UserInfo from "./pages/UserInfo";
 import ThankYou from "./pages/ThankYou";
+import ThankYouConfirmation from "./pages/ThankYouConfirmation";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/submit" element={<Submit />} />
           <Route path="/user-info" element={<UserInfo />} />
           <Route path="/thank-you" element={<ThankYou />} />
+          <Route path="/thank-you-confirmation" element={<ThankYouConfirmation />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
