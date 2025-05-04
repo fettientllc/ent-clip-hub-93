@@ -24,7 +24,7 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
 
   const clearVideo = () => {
     setVideoFileName(null);
-    form.setValue('video', undefined, { shouldValidate: true });
+    form.setValue('video', undefined as any, { shouldValidate: true });
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -62,8 +62,8 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                     className="hidden"
                     accept="video/*"
                     onChange={(e) => {
-                      handleVideoChange(e); // your custom file handling
-                      onChange(e);           // inform react-hook-form
+                      handleVideoChange(e); 
+                      onChange(e);
                     }}
                     {...rest}
                   />
@@ -72,6 +72,14 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
             </div>
           </FormControl>
           <FormMessage className="text-red-500" />
+          {form.formState.errors.video && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {form.formState.errors.video.message?.toString()}
+              </AlertDescription>
+            </Alert>
+          )}
         </FormItem>
       )}
     />

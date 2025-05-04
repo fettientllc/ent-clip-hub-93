@@ -1,9 +1,10 @@
+
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 // Schema definition
 const formSchema = z.object({
@@ -21,11 +22,11 @@ const formSchema = z.object({
   keepInTouch: z.boolean().optional(),
   signature: z.string().min(1, "Your signature is required"),
   video: z
-    .any()
-    .refine(file => file instanceof File && file.type.startsWith('video/'), {
+    .instanceof(File, { message: "Please upload a valid video file" })
+    .refine(file => file.type.startsWith('video/'), {
       message: "Please upload a valid video file",
     })
-    .refine(file => file?.size <= 500 * 1024 * 1024, {
+    .refine(file => file.size <= 500 * 1024 * 1024, {
       message: "Video file size must be less than 500MB",
     }),
 });
@@ -55,6 +56,15 @@ export const useSubmitForm = () => {
   });
 
   const onSubmit = async (data: SubmitFormValues) => {
+    if (!data.video || !(data.video instanceof File)) {
+      toast({
+        title: "Video required",
+        description: "Please upload a valid video file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -69,7 +79,7 @@ export const useSubmitForm = () => {
       formData.append('signature', data.signature);
 
       if (data.description) formData.append('description', data.description);
-      if (data.video instanceof File) formData.append('video', data.video);
+      formData.append('video', data.video);
 
       const response = await fetch("https://dropbox-form-backend.onrender.com", {
         method: 'POST',
@@ -102,7 +112,7 @@ export const useSubmitForm = () => {
     const file = e.target.files?.[0];
 
     if (!file) {
-      form.setValue('video', undefined, { shouldValidate: true });
+      form.setValue('video', undefined as any, { shouldValidate: true });
       setVideoFileName(null);
       return;
     }
@@ -113,7 +123,7 @@ export const useSubmitForm = () => {
         description: "Please upload a video file.",
         variant: "destructive",
       });
-      form.setValue('video', undefined, { shouldValidate: true });
+      form.setValue('video', undefined as any, { shouldValidate: true });
       setVideoFileName(null);
       return;
     }
@@ -124,7 +134,7 @@ export const useSubmitForm = () => {
         description: "Video file size must be less than 500MB.",
         variant: "destructive",
       });
-      form.setValue('video', undefined, { shouldValidate: true });
+      form.setValue('video', undefined as any, { shouldValidate: true });
       setVideoFileName(null);
       return;
     }
