@@ -22,11 +22,14 @@ const formSchema = z.object({
   keepInTouch: z.boolean().optional(),
   signature: z.string().min(1, "Your signature is required"),
   video: z
-    .instanceof(File, { message: "Please upload a valid video file" })
-    .refine(file => file.type.startsWith('video/'), {
+    .any()
+    .refine(file => file instanceof File, {
       message: "Please upload a valid video file",
     })
-    .refine(file => file.size <= 500 * 1024 * 1024, {
+    .refine(file => file instanceof File && file.type.startsWith('video/'), {
+      message: "Please upload a valid video file",
+    })
+    .refine(file => file instanceof File && file.size <= 500 * 1024 * 1024, {
       message: "Video file size must be less than 500MB",
     }),
 });
@@ -52,11 +55,15 @@ export const useSubmitForm = () => {
       keepInTouch: false,
       signature: "",
     },
-    mode: "onBlur",
+    mode: "onChange",
   });
 
   const onSubmit = async (data: SubmitFormValues) => {
     if (!data.video || !(data.video instanceof File)) {
+      form.setError("video", {
+        type: "manual",
+        message: "Please upload a valid video file",
+      });
       toast({
         title: "Video required",
         description: "Please upload a valid video file.",
@@ -112,12 +119,20 @@ export const useSubmitForm = () => {
     const file = e.target.files?.[0];
 
     if (!file) {
+      form.setError("video", {
+        type: "manual",
+        message: "Please upload a valid video file",
+      });
       form.setValue('video', undefined as any, { shouldValidate: true });
       setVideoFileName(null);
       return;
     }
 
     if (!file.type.startsWith('video/')) {
+      form.setError("video", {
+        type: "manual",
+        message: "Please upload a valid video file",
+      });
       toast({
         title: "Invalid file type",
         description: "Please upload a video file.",
@@ -129,6 +144,10 @@ export const useSubmitForm = () => {
     }
 
     if (file.size > 500 * 1024 * 1024) {
+      form.setError("video", {
+        type: "manual",
+        message: "Video file size must be less than 500MB",
+      });
       toast({
         title: "File too large",
         description: "Video file size must be less than 500MB.",
@@ -139,6 +158,8 @@ export const useSubmitForm = () => {
       return;
     }
 
+    // Clear any previous errors
+    form.clearErrors("video");
     form.setValue('video', file, { shouldValidate: true });
     setVideoFileName(file.name);
   };

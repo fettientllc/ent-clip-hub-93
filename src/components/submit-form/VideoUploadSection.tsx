@@ -28,6 +28,8 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const hasError = !!form.formState.errors.video;
+
   return (
     <FormField
       control={form.control}
@@ -36,7 +38,7 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
         <FormItem>
           <FormLabel className="text-gray-800 font-medium">Upload Video (Required)</FormLabel>
           <FormControl>
-            <div className={`bg-gray-100 p-6 rounded border ${form.formState.errors.video ? 'border-red-500' : 'border-gray-300'} flex flex-col items-center justify-center h-[180px]`}>
+            <div className={`bg-gray-100 p-6 rounded border ${hasError ? 'border-red-500' : 'border-gray-300'} flex flex-col items-center justify-center h-[180px]`}>
               {videoFileName ? (
                 <div className="flex flex-col items-center gap-3">
                   <Video className="h-12 w-12 text-blue-600" />
@@ -52,12 +54,11 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                 </div>
               ) : (
                 <label htmlFor="video-upload" className="cursor-pointer flex flex-col items-center gap-3 w-full h-full justify-center">
-                  <Upload className={`h-12 w-12 ${form.formState.errors.video ? 'text-red-500' : 'text-blue-600'}`} />
-                  <span className={`font-medium ${form.formState.errors.video ? 'text-red-500' : 'text-blue-600'}`}>Click to upload video</span>
+                  <Upload className={`h-12 w-12 ${hasError ? 'text-red-500' : 'text-blue-600'}`} />
+                  <span className={`font-medium ${hasError ? 'text-red-500' : 'text-blue-600'}`}>
+                    {hasError ? 'Please upload a video file' : 'Click to upload video'}
+                  </span>
                   <span className="text-xs text-gray-500">(Max size: 500MB)</span>
-                  {form.formState.errors.video && (
-                    <span className="text-red-500 text-sm mt-1">Please upload a valid video file</span>
-                  )}
                   <input 
                     id="video-upload"
                     ref={fileInputRef}
@@ -75,11 +76,11 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
             </div>
           </FormControl>
           <FormMessage className="text-red-500" />
-          {form.formState.errors.video && (
+          {hasError && (
             <Alert variant="destructive" className="mt-2">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {form.formState.errors.video.message?.toString()}
+                Please upload a valid video file before submitting
               </AlertDescription>
             </Alert>
           )}

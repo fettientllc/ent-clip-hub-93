@@ -22,7 +22,7 @@ const Submit: React.FC = () => {
     handleSignatureChange
   } = useSubmitForm();
   
-  const [showErrors, setShowErrors] = useState(false);
+  const [showErrors, setShowErrors] = useState(true); // Set to true initially to show video error
 
   const handleSubmit = (e: React.FormEvent) => {
     setShowErrors(true);
@@ -44,13 +44,20 @@ const Submit: React.FC = () => {
             handleVideoChange={handleVideoChange}
           />
           
-          {showErrors && Object.keys(form.formState.errors).length > 0 && (
+          {showErrors && hasVideoError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="font-bold">
+                Please upload a valid video file before submitting
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {showErrors && Object.keys(form.formState.errors).length > 0 && !hasVideoError && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {hasVideoError 
-                  ? "Please upload a valid video file before submitting" 
-                  : "Please fix the errors above before submitting"}
+                Please fix the errors above before submitting
               </AlertDescription>
             </Alert>
           )}
