@@ -8,6 +8,7 @@ import type { SubmitFormValues } from './form/formSchema';
 import { useFormDataBuilder } from './form/useFormDataBuilder';
 import { useFormUploader } from './form/useFormUploader';
 import { useVideoHandler } from './form/useVideoHandler';
+import { useToast } from "@/hooks/use-toast";
 
 // Use "export type" to fix the TS1205 error
 export type { SubmitFormValues } from './form/formSchema';
@@ -17,6 +18,7 @@ export const useSubmitForm = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData | null>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const form = useForm<SubmitFormValues>({
     resolver: zodResolver(formSchema),
@@ -40,6 +42,13 @@ export const useSubmitForm = () => {
     onSuccess: () => {
       setSubmitting(false);
       setFormData(null); // Clear stored form data
+      
+      toast({
+        title: "Upload received!",
+        description: "Your submission has been received and is being processed in the background. You can safely navigate away from this page.",
+        duration: 8000,
+      });
+      
       navigate('/thank-you-confirmation');
     },
     onError: (errorMessage) => {
@@ -78,6 +87,11 @@ export const useSubmitForm = () => {
       // Check for large files
       if (data.video.size > 100 * 1024 * 1024) {
         console.log("Large file detected, upload may take several minutes");
+        toast({
+          title: "Processing large file",
+          description: "Large files are uploaded in the background. You'll be redirected once the upload starts, but processing will continue.",
+          duration: 8000,
+        });
       }
       
       // Execute the upload with the freshly built form data
@@ -100,6 +114,11 @@ export const useSubmitForm = () => {
       const videoFile = form.getValues('video') as File | undefined;
       if (videoFile && videoFile.size > 100 * 1024 * 1024) {
         console.log("Retrying upload with large file", Math.round(videoFile.size / 1024 / 1024), "MB");
+        toast({
+          title: "Retrying large upload",
+          description: "Your video will be processed in the background after upload starts.",
+          duration: 5000,
+        });
       }
       
       // Reuse the stored form data for retry

@@ -253,18 +253,20 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
       if (xhr.status >= 200 && xhr.status < 300) {
         console.log("Form submitted successfully");
         onSuccess();
-        toast({
-          title: "Submission successful!",
-          description: "Your clip has been uploaded successfully.",
-        });
-      } else if (xhr.status === 202) {
-        // Handle 202 Accepted response (async processing)
-        console.log("Form accepted for processing");
-        onSuccess();
-        toast({
-          title: "Submission accepted!",
-          description: "Your clip has been received and is being processed.",
-        });
+        
+        // Customize message based on status code
+        if (xhr.status === 202) {
+          toast({
+            title: "Upload started",
+            description: "Your video is being processed in the background. The system will complete the upload even if you close this page.",
+            duration: 8000,
+          });
+        } else {
+          toast({
+            title: "Submission successful!",
+            description: "Your clip has been uploaded successfully.",
+          });
+        }
       } else {
         console.error(`Submission error: ${xhr.status}`, xhr.responseText);
         let errorMessage = `Error ${xhr.status}: ${xhr.responseText || 'Unknown error occurred'}`;

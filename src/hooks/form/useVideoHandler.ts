@@ -51,11 +51,33 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
       return;
     }
     
-    // New check for the Render free tier timeouts
-    if (file.size > 5 * 1024 * 1024) {
+    // Show compression link for large files (over 100MB)
+    if (file.size > 100 * 1024 * 1024) {
+      toast({
+        title: "Large file detected",
+        description: (
+          <div>
+            Large file detected ({Math.round(file.size / 1024 / 1024)}MB). We recommend compressing it with{" "}
+            <a 
+              href="https://handbrake.fr/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline font-semibold"
+              onClick={(e) => e.stopPropagation()}
+            >
+              HandBrake
+            </a>{" "}
+            before uploading.
+          </div>
+        ),
+        duration: 10000,
+      });
+    }
+    // Show warning for medium files
+    else if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "Server limitation warning",
-        description: "Files over 5MB may time out due to server limitations. Consider using a smaller file.",
+        description: "Files over 5MB may take longer to process due to server limitations. The upload will work, but please wait patiently for processing to complete.",
         duration: 8000,
       });
     }
@@ -66,21 +88,6 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
     form.clearErrors("video");
     form.setValue('video', file, { shouldValidate: true });
     setVideoFileName(file.name);
-    
-    // Display appropriate message based on file size
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "⚠️ Upload likely to fail",
-        description: "Due to server limitations (free tier), files over 10MB are likely to time out. Consider compressing your video first.",
-        duration: 10000,
-      });
-    } else if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Large file detected",
-        description: "This file may take longer to upload and could time out. For best results, use files under 5MB.",
-        duration: 8000,
-      });
-    }
   };
 
   return {

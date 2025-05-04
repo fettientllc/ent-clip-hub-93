@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
@@ -22,11 +22,33 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
   showError = false
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+
+  const videoFile = form.watch('video') as File | undefined;
+
+  // Create object URL for video preview when file changes
+  useEffect(() => {
+    if (videoFile instanceof File) {
+      const objectUrl = URL.createObjectURL(videoFile);
+      setVideoPreviewUrl(objectUrl);
+      
+      // Clean up the URL when component unmounts or file changes
+      return () => {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      };
+    } else {
+      setVideoPreviewUrl(null);
+    }
+  }, [videoFile]);
 
   const clearVideo = () => {
     setVideoFileName(null);
     form.setValue('video', undefined as any, { shouldValidate: true });
     if (fileInputRef.current) fileInputRef.current.value = '';
+    if (videoPreviewUrl) {
+      URL.revokeObjectURL(videoPreviewUrl);
+      setVideoPreviewUrl(null);
+    }
   };
 
   const hasError = showError && !!form.formState.errors.video;
@@ -39,16 +61,29 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
         <FormItem>
           <FormLabel className="text-gray-800 font-medium">Upload Video (Required)</FormLabel>
           <FormControl>
-            <div className={`bg-gray-100 p-6 rounded border ${hasError ? 'border-red-500' : 'border-gray-300'} flex flex-col items-center justify-center h-[180px]`}>
+            <div className={`bg-gray-100 p-6 rounded border ${hasError ? 'border-red-500' : 'border-gray-300'} flex flex-col items-center justify-center ${!videoFileName ? 'h-[180px]' : ''}`}>
               {videoFileName ? (
-                <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-col items-center gap-3 w-full">
                   <Video className="h-12 w-12 text-blue-600" />
                   <span className="text-sm text-gray-700 text-center font-medium">{videoFileName}</span>
+                  
+                  {/* Video preview */}
+                  {videoPreviewUrl && (
+                    <div className="w-full mt-3">
+                      <video 
+                        controls 
+                        className="w-full max-h-64 rounded border border-gray-300"
+                        src={videoPreviewUrl}
+                      />
+                    </div>
+                  )}
+                  
                   <Button 
                     type="button" 
                     variant="outline" 
                     size="sm"
                     onClick={clearVideo}
+                    className="mt-2"
                   >
                     Remove Video
                   </Button>
