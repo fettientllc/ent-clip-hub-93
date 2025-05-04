@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 
@@ -131,7 +132,7 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
       toast({
         title: "Server timeout risk",
         description: "The server might time out soon (free tier limitation). If upload fails, try a smaller file.",
-        variant: "warning",
+        variant: "destructive", // Changed from "warning" to "destructive"
         duration: 10000, // 10 seconds
       });
     }, RENDER_TIMEOUT_WARNING);
