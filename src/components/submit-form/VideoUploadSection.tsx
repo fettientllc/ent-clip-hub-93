@@ -25,7 +25,7 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
       name="video"
       render={({ field: { onChange, value, ...rest } }) => (
         <FormItem>
-          <FormLabel>Upload Video</FormLabel>
+          <FormLabel className="text-gray-800">Upload Video</FormLabel>
           <FormControl>
             <div className="bg-gray-100 p-6 rounded border border-gray-300 flex flex-col items-center justify-center h-[150px]">
               {videoFileName ? (
@@ -62,7 +62,7 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
               )}
             </div>
           </FormControl>
-          <FormMessage />
+          <FormMessage className="text-red-500" />
         </FormItem>
       )}
     />

@@ -23,11 +23,17 @@ const formSchema = z.object({
   signature: z.string().min(1, { message: "Your signature is required" }),
   video: z
     .any()
-    .refine(file => file instanceof FileList && file.length > 0, {
+    .refine(file => {
+      // Allow undefined during form editing
+      if (file === undefined) return true;
+      return file instanceof FileList && file.length > 0;
+    }, {
       message: "Please upload a video"
     })
     .refine(
       file => {
+        // Allow undefined during form editing
+        if (file === undefined) return true;
         if (file instanceof FileList && file.length > 0) {
           return file[0].type.startsWith('video/');
         }
@@ -85,8 +91,18 @@ export const useSubmitForm = () => {
       
       // Handle video file upload properly
       if (data.video instanceof FileList && data.video.length > 0) {
-        console.log("Adding video to form data:", data.video[0]);
-        formData.append('video', data.video[0]);
+        const videoFile = data.video[0];
+        console.log("Adding video to form data:", videoFile);
+        formData.append('video', videoFile);
+      } else {
+        console.error("No video file found in form data");
+        toast({
+          title: "Submission failed",
+          description: "Please upload a video file before submitting.",
+          variant: "destructive",
+        });
+        setSubmitting(false);
+        return;
       }
       
       // Use the provided deployed Flask backend endpoint
@@ -102,6 +118,8 @@ export const useSubmitForm = () => {
       });
       
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Server error: ${response.status} - ${errorText}`);
         throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
       }
       
@@ -130,10 +148,13 @@ export const useSubmitForm = () => {
 
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setVideoFileName(e.target.files[0].name);
-      form.setValue('video', e.target.files);
+      const file = e.target.files[0];
+      console.log("Video file selected:", file.name, file.type, file.size);
+      setVideoFileName(file.name);
+      form.setValue('video', e.target.files, { shouldValidate: true });
     } else {
       setVideoFileName(null);
+      form.setValue('video', undefined);
     }
   };
 
