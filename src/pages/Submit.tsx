@@ -12,6 +12,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useToast } from "@/hooks/use-toast";
 import { Video } from 'lucide-react';
+import AgreementCheckboxes from '@/components/user-info/AgreementCheckboxes';
+import SignaturePad from '@/components/SignaturePad';
 
 const formSchema = z.object({
   firstName: z.string().min(1, { message: "First name is required" }),
@@ -19,6 +21,14 @@ const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
   location: z.string().min(1, { message: "Please enter where this was filmed" }),
   description: z.string().optional(),
+  agreeTerms: z.boolean().refine(val => val === true, {
+    message: "You must agree to the terms and conditions"
+  }),
+  noOtherSubmission: z.boolean().refine(val => val === true, {
+    message: "You must confirm that you have not submitted this clip elsewhere"
+  }),
+  keepInTouch: z.boolean().optional(),
+  signature: z.string().min(1, { message: "Your signature is required" }),
   video: z.instanceof(FileList).refine(files => files.length > 0, {
     message: "Please upload a video"
   }).refine(
@@ -38,6 +48,7 @@ type FormValues = z.infer<typeof formSchema>;
 const Submit: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
+  const [signature, setSignature] = useState('');
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -49,6 +60,10 @@ const Submit: React.FC = () => {
       email: "",
       location: "",
       description: "",
+      agreeTerms: false,
+      noOtherSubmission: false,
+      keepInTouch: false,
+      signature: "",
     },
   });
 
@@ -65,6 +80,11 @@ const Submit: React.FC = () => {
       if (data.description) {
         formData.append('description', data.description);
       }
+      
+      formData.append('agreeTerms', data.agreeTerms.toString());
+      formData.append('noOtherSubmission', data.noOtherSubmission.toString());
+      formData.append('keepInTouch', (data.keepInTouch || false).toString());
+      formData.append('signature', data.signature);
       
       if (data.video.length > 0) {
         formData.append('video', data.video[0]);
@@ -112,6 +132,11 @@ const Submit: React.FC = () => {
     } else {
       setVideoFileName(null);
     }
+  };
+
+  const handleSignatureChange = (signatureData: string) => {
+    setSignature(signatureData);
+    form.setValue('signature', signatureData);
   };
 
   return (
@@ -253,6 +278,29 @@ const Submit: React.FC = () => {
                   </FormItem>
                 )}
               />
+              
+              {/* Agreement Checkboxes */}
+              <div className="pt-4 border-t border-gray-200">
+                <h3 className="font-medium text-gray-900 mb-4">Agreements</h3>
+                <AgreementCheckboxes form={form as any} />
+              </div>
+              
+              {/* Signature Pad */}
+              <div className="pt-4 border-t border-gray-200">
+                <FormField
+                  control={form.control}
+                  name="signature"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Signature</FormLabel>
+                      <FormControl>
+                        <SignaturePad onSignatureChange={handleSignatureChange} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               
               <div className="text-sm text-gray-600 mt-4">
                 <p>
