@@ -1,9 +1,9 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
-import { Video, AlertCircle } from 'lucide-react';
+import { Video, AlertCircle, Upload } from 'lucide-react';
 import { SubmitFormValues } from '@/hooks/useSubmitForm';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -22,6 +22,12 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
 }) => {
   // Create a ref to allow resetting the file input
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Debug log for the video field value
+  useEffect(() => {
+    const videoValue = form.getValues('video');
+    console.log("Video field value in component:", videoValue);
+  }, [form, videoFileName]);
 
   return (
     <>
@@ -30,33 +36,37 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
         name="video"
         render={({ field: { onChange, value, ...rest } }) => (
           <FormItem>
-            <FormLabel className="text-gray-800">Upload Video</FormLabel>
+            <FormLabel className="text-gray-800 font-medium">Upload Video (Required)</FormLabel>
             <FormControl>
-              <div className="bg-gray-100 p-6 rounded border border-gray-300 flex flex-col items-center justify-center h-[150px]">
+              <div className="bg-gray-100 p-6 rounded border border-gray-300 flex flex-col items-center justify-center h-[180px]">
                 {videoFileName ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <Video className="h-10 w-10 text-blue-500" />
-                    <span className="text-sm text-gray-700 text-center">{videoFileName}</span>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        setVideoFileName(null);
-                        form.setValue('video', undefined, { shouldValidate: true });
-                        // Reset the file input
-                        if (fileInputRef.current) {
-                          fileInputRef.current.value = '';
-                        }
-                      }}
-                    >
-                      Change Video
-                    </Button>
+                  <div className="flex flex-col items-center gap-3">
+                    <Video className="h-12 w-12 text-blue-600" />
+                    <span className="text-sm text-gray-700 text-center font-medium">{videoFileName}</span>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setVideoFileName(null);
+                          form.setValue('video', undefined, { shouldValidate: true });
+                          console.log("After clearing video:", form.getValues('video'));
+                          // Reset the file input
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = '';
+                          }
+                        }}
+                      >
+                        Remove Video
+                      </Button>
+                    </div>
                   </div>
                 ) : (
-                  <label htmlFor="video-upload" className="cursor-pointer flex flex-col items-center gap-2">
-                    <Video className="h-10 w-10 text-gray-500" />
-                    <span className="text-gray-600">Click to upload video</span>
+                  <label htmlFor="video-upload" className="cursor-pointer flex flex-col items-center gap-3 w-full h-full justify-center">
+                    <Upload className="h-12 w-12 text-blue-600" />
+                    <span className="text-blue-600 font-medium">Click to upload video</span>
+                    <span className="text-xs text-gray-500">(Max size: 500MB)</span>
                     <input 
                       id="video-upload" 
                       ref={fileInputRef}
@@ -64,6 +74,7 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                       className="hidden" 
                       accept="video/*"
                       onChange={(e) => {
+                        console.log("File input changed");
                         handleVideoChange(e);
                       }}
                       {...rest}

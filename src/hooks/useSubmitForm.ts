@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,8 +22,11 @@ const formSchema = z.object({
   keepInTouch: z.boolean().optional(),
   signature: z.string().min(1, { message: "Your signature is required" }),
   video: z.any()
-    .refine(file => file instanceof File, {
+    .refine(file => file != null, {
       message: "Please upload a video file"
+    })
+    .refine(file => file instanceof File, {
+      message: "Please upload a valid video file"
     })
     .refine(file => file instanceof File && file.type.startsWith('video/'), {
       message: "The file must be a video"
@@ -55,7 +58,21 @@ export const useSubmitForm = () => {
       keepInTouch: false,
       signature: "",
     },
+    mode: "onBlur" // Validate fields when they lose focus
   });
+
+  // Debug form values
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      console.log("Form values changed:", value);
+      if (value.video instanceof File) {
+        console.log("Video file in form:", value.video.name, value.video.type, value.video.size);
+      } else {
+        console.log("Video value:", value.video);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   const onSubmit = async (data: SubmitFormValues) => {
     setSubmitting(true);
@@ -138,6 +155,7 @@ export const useSubmitForm = () => {
   };
 
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("handleVideoChange triggered", e.target.files);
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       console.log("Video file selected:", file.name, file.type, file.size);
@@ -169,7 +187,9 @@ export const useSubmitForm = () => {
       }
       
       setVideoFileName(file.name);
+      // Explicitly set the video file in the form
       form.setValue('video', file, { shouldValidate: true });
+      console.log("After setValue, form value:", form.getValues('video'));
     } else {
       setVideoFileName(null);
       form.setValue('video', undefined, { shouldValidate: true });

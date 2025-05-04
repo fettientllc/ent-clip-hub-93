@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { useSubmitForm } from '@/hooks/useSubmitForm';
@@ -8,6 +8,8 @@ import PersonalInfoSection from '@/components/submit-form/PersonalInfoSection';
 import VideoUploadSection from '@/components/submit-form/VideoUploadSection';
 import LegalSection from '@/components/submit-form/LegalSection';
 import SignatureSection from '@/components/submit-form/SignatureSection';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const Submit: React.FC = () => {
   const { 
@@ -19,11 +21,25 @@ const Submit: React.FC = () => {
     handleVideoChange, 
     handleSignatureChange
   } = useSubmitForm();
+  
+  // Debug form validation on mount
+  useEffect(() => {
+    console.log("Submit form mounted");
+    console.log("Form is valid:", form.formState.isValid);
+    console.log("Form errors:", form.formState.errors);
+  }, [form.formState]);
+
+  // Submit handler with extra validation
+  const handleSubmit = form.handleSubmit((data) => {
+    console.log("Form submitted with data:", data);
+    console.log("Video file type:", data.video instanceof File ? data.video.type : typeof data.video);
+    onSubmit(data);
+  });
 
   return (
     <SubmitFormLayout>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Personal Information */}
           <PersonalInfoSection form={form} />
           
@@ -34,6 +50,16 @@ const Submit: React.FC = () => {
             setVideoFileName={setVideoFileName}
             handleVideoChange={handleVideoChange}
           />
+          
+          {/* Show general form errors if any */}
+          {Object.keys(form.formState.errors).length > 0 && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Please fix the errors above before submitting
+              </AlertDescription>
+            </Alert>
+          )}
           
           {/* Agreement Checkboxes */}
           <LegalSection form={form} />
@@ -47,7 +73,7 @@ const Submit: React.FC = () => {
           <Button 
             type="submit" 
             disabled={submitting}
-            className="w-full bg-[#6C63FF] hover:bg-[#5952cc] text-white font-bold py-4 text-lg uppercase mt-4"
+            className="w-full bg-[#6C63FF] hover:bg-[#5952cc] text-white font-bold py-4 text-lg uppercase mt-6"
           >
             {submitting ? "Submitting..." : "SUBMIT"}
           </Button>
