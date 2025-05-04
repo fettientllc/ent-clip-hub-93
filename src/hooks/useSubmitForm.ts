@@ -9,6 +9,7 @@ import { useFormDataBuilder } from './form/useFormDataBuilder';
 import { useFormUploader } from './form/useFormUploader';
 import { useVideoHandler } from './form/useVideoHandler';
 
+// Use "export type" to fix the TS1205 error
 export type { SubmitFormValues } from './form/formSchema';
 
 export const useSubmitForm = () => {
@@ -74,6 +75,11 @@ export const useSubmitForm = () => {
       console.log("Submitting form data...");
       console.log(`Video size: ${Math.round(data.video.size / 1024 / 1024)} MB`);
       
+      // Check for large files
+      if (data.video.size > 100 * 1024 * 1024) {
+        console.log("Large file detected, upload may take several minutes");
+      }
+      
       // Execute the upload with the freshly built form data
       executeUpload(uploadFormData);
       
@@ -84,11 +90,18 @@ export const useSubmitForm = () => {
     }
   };
   
-  // Retry upload function
+  // Retry upload function with refresh attempt
   const retryUpload = () => {
     if (formData) {
       setSubmitting(true);
       setUploadError(null);
+      
+      // For large files, suggest compressing before retrying
+      const videoFile = form.getValues('video') as File | undefined;
+      if (videoFile && videoFile.size > 100 * 1024 * 1024) {
+        console.log("Retrying upload with large file", Math.round(videoFile.size / 1024 / 1024), "MB");
+      }
+      
       // Reuse the stored form data for retry
       executeUpload(formData);
     } else {

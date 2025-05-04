@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import VideoUploadSection from '@/components/submit-form/VideoUploadSection';
 import LegalSection from '@/components/submit-form/LegalSection';
 import SignatureSection from '@/components/submit-form/SignatureSection';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader, AlertTriangle, WifiOff, RefreshCw } from "lucide-react";
+import { AlertCircle, Loader, AlertTriangle, WifiOff, RefreshCw, Info, Clock } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 const Submit: React.FC = () => {
@@ -30,6 +29,13 @@ const Submit: React.FC = () => {
   } = useSubmitForm();
   
   const [showErrors, setShowErrors] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (uploadError) {
+      setLastError(uploadError);
+    }
+  }, [uploadError]);
 
   const handleSubmit = (e: React.FormEvent) => {
     setShowErrors(true);
@@ -39,18 +45,16 @@ const Submit: React.FC = () => {
   const hasVideoError = !!form.formState.errors.video;
   const hasOtherErrors = Object.keys(form.formState.errors).some(key => key !== 'video');
   
-  // Helper function to format file size
   const formatFileSize = (size: number): string => {
     if (size < 1024) return `${size} B`;
     else if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
     else return `${(size / 1024 / 1024).toFixed(1)} MB`;
   };
   
-  // Get video file size if available
   const videoFile = form.watch('video') as File | undefined;
   const videoFileSize = videoFile instanceof File ? formatFileSize(videoFile.size) : null;
+  const isLargeFile = videoFile instanceof File && videoFile.size > 100 * 1024 * 1024;
 
-  // Network status warning
   const renderNetworkAlert = () => {
     if (networkStatus === 'offline') {
       return (
@@ -67,6 +71,25 @@ const Submit: React.FC = () => {
           <AlertTriangle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="font-bold">
             Your internet connection appears to be slow. Uploads may take longer than expected.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    return null;
+  };
+  
+  const renderFileSizeWarning = () => {
+    if (isLargeFile) {
+      return (
+        <Alert className="bg-blue-50 border-blue-200 text-blue-800 mt-4">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription>
+            <span className="font-medium">This is a large file.</span> For more reliable uploads:
+            <ul className="list-disc list-inside mt-1 text-sm">
+              <li>Use a stable WiFi or wired connection</li>
+              <li>Keep the browser tab open during upload</li>
+              <li>Consider compressing your video before uploading</li>
+            </ul>
           </AlertDescription>
         </Alert>
       );
@@ -93,13 +116,15 @@ const Submit: React.FC = () => {
           {videoFileName && videoFileSize && (
             <div className="text-sm text-gray-600">
               Video size: {videoFileSize}
-              {videoFile && videoFile.size > 100 * 1024 * 1024 && (
+              {isLargeFile && (
                 <span className="ml-2 text-amber-600 font-medium">
                   (Large file - upload may take several minutes)
                 </span>
               )}
             </div>
           )}
+          
+          {renderFileSizeWarning()}
           
           {showErrors && hasVideoError && (
             <Alert className="bg-red-50 border-red-200 text-red-800">
@@ -135,18 +160,22 @@ const Submit: React.FC = () => {
                     <RefreshCw className="h-4 w-4" />
                     Retry Upload
                   </Button>
-                  {uploadError.includes("timeout") || uploadError.includes("connection") ? (
+                  
+                  {(uploadError.includes("timeout") || 
+                    uploadError.includes("connection") || 
+                    uploadError.includes("slow") || 
+                    lastError?.includes("timeout")) && (
                     <div className="text-sm mt-4 space-y-2 bg-gray-50 p-3 rounded-md border border-gray-200">
-                      <p className="font-medium">Troubleshooting tips:</p>
+                      <p className="font-medium">Try these solutions:</p>
                       <ul className="list-disc list-inside space-y-1 text-sm">
-                        <li>Try using a wired internet connection if available</li>
-                        <li>Reduce your video file size by compressing it before uploading</li>
-                        <li>Try using a different network (mobile hotspot or different WiFi)</li>
-                        <li>Make sure no other bandwidth-intensive applications are running</li>
-                        <li>If on mobile, try switching from WiFi to cellular data or vice versa</li>
+                        <li><strong>Compress your video</strong> - Use a tool like HandBrake to reduce file size</li>
+                        <li><strong>Use a better connection</strong> - Try wired internet or a different WiFi network</li>
+                        <li><strong>Clear browser cache</strong> - This can help with connection issues</li>
+                        <li><strong>Try a different browser</strong> - Some browsers handle uploads better than others</li>
+                        <li><strong>Upload in smaller chunks</strong> - If possible, split your video into smaller files</li>
                       </ul>
                     </div>
-                  ) : null}
+                  )}
                 </div>
               </AlertDescription>
             </Alert>
@@ -175,7 +204,8 @@ const Submit: React.FC = () => {
           {submitting && (
             <div className="mt-4">
               <div className="flex flex-col space-y-2">
-                <p className="text-sm text-center text-gray-600">
+                <p className="text-sm text-center text-gray-600 flex items-center justify-center gap-1">
+                  <Clock className="h-4 w-4" />
                   Uploading your video... Please don't close this page.
                   {uploadProgress > 0 && ` (${uploadProgress}% complete)`}
                   {uploadSpeed && ` - ${uploadSpeed}`}
@@ -199,8 +229,8 @@ const Submit: React.FC = () => {
                   <ul className="list-disc list-inside mt-1 space-y-1">
                     <li>Use a wired internet connection if possible</li>
                     <li>Try compressing your video with tools like HandBrake</li>
-                    <li>Close other bandwidth-intensive applications</li>
-                    <li>Upload during off-peak hours when internet traffic is lower</li>
+                    <li>Keep this browser tab open and active</li>
+                    <li>Disable screen savers and prevent device sleep</li>
                     {networkStatus === 'slow' && (
                       <li className="text-amber-700 font-medium">Your connection appears to be slow - consider trying a different network</li>
                     )}
