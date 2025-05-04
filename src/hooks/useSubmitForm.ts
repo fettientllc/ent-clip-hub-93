@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,7 +25,7 @@ const formSchema = z.object({
     .refine(file => file instanceof File && file.type.startsWith('video/'), {
       message: "Please upload a valid video file",
     })
-    .refine(file => file.size <= 500 * 1024 * 1024, {
+    .refine(file => file?.size <= 500 * 1024 * 1024, {
       message: "Video file size must be less than 500MB",
     }),
 });
