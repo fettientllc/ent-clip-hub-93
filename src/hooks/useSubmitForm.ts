@@ -22,27 +22,23 @@ const formSchema = z.object({
   keepInTouch: z.boolean().optional(),
   signature: z.string().min(1, { message: "Your signature is required" }),
   video: z
-    .any()
-    .refine(file => {
-      // Allow undefined during form editing
-      if (file === undefined) return true;
-      return file instanceof FileList && file.length > 0;
-    }, {
+    .instanceof(FileList)
+    .refine(files => files.length > 0, {
       message: "Please upload a video"
     })
-    .refine(
-      file => {
-        // Allow undefined during form editing
-        if (file === undefined) return true;
-        if (file instanceof FileList && file.length > 0) {
-          return file[0].type.startsWith('video/');
-        }
-        return false;
-      },
-      {
-        message: "The file must be a video"
-      }
-    ),
+    .refine(files => {
+      if (files.length === 0) return false;
+      return files[0].type.startsWith('video/');
+    }, {
+      message: "The file must be a video"
+    })
+    .refine(files => {
+      if (files.length === 0) return false;
+      // 500MB max size limit
+      return files[0].size <= 500 * 1024 * 1024;
+    }, {
+      message: "Video file size must be less than 500MB"
+    })
 });
 
 export type SubmitFormValues = z.infer<typeof formSchema>;
@@ -92,7 +88,7 @@ export const useSubmitForm = () => {
       // Handle video file upload properly
       if (data.video instanceof FileList && data.video.length > 0) {
         const videoFile = data.video[0];
-        console.log("Adding video to form data:", videoFile);
+        console.log("Adding video to form data:", videoFile.name, videoFile.type, videoFile.size);
         formData.append('video', videoFile);
       } else {
         console.error("No video file found in form data");
@@ -120,7 +116,7 @@ export const useSubmitForm = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`Server error: ${response.status} - ${errorText}`);
-        throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
+        throw new Error(`Server responded with ${response.status}: ${errorText}`);
       }
       
       const result = await response.json();
