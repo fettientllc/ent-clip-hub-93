@@ -90,8 +90,8 @@ const Submit: React.FC = () => {
         formData.append('video', data.video[0]);
       }
       
-      // Replace this URL with your actual Flask backend endpoint
-      const apiUrl = "https://your-flask-backend-url.com/submit";
+      // Use the provided deployed Flask backend endpoint
+      const apiUrl = "https://dropbox-form-backend.onrender.com";
       
       // Send the form data to the backend
       const response = await fetch(apiUrl, {
@@ -111,7 +111,7 @@ const Submit: React.FC = () => {
         description: "Your clip has been uploaded successfully.",
       });
       
-      // Redirect to thank you page
+      // Redirect to thank you confirmation page
       navigate('/thank-you-confirmation');
       
     } catch (error) {
