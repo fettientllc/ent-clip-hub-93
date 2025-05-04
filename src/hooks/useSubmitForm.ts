@@ -35,7 +35,7 @@ export const useSubmitForm = () => {
   
   const { videoFileName, setVideoFileName, handleVideoChange } = useVideoHandler(form);
   const { buildFormData } = useFormDataBuilder();
-  const { uploadProgress, timeoutWarning, uploadSpeed, executeUpload } = useFormUploader({
+  const { uploadProgress, timeoutWarning, uploadSpeed, networkStatus, executeUpload } = useFormUploader({
     onSuccess: () => {
       setSubmitting(false);
       setFormData(null); // Clear stored form data
@@ -53,6 +53,12 @@ export const useSubmitForm = () => {
         type: "manual",
         message: "Please upload a valid video file",
       });
+      return;
+    }
+
+    // Check for offline state before attempting upload
+    if (networkStatus === 'offline') {
+      setUploadError("You appear to be offline. Please check your internet connection before uploading.");
       return;
     }
 
@@ -82,6 +88,7 @@ export const useSubmitForm = () => {
   const retryUpload = () => {
     if (formData) {
       setSubmitting(true);
+      setUploadError(null);
       // Reuse the stored form data for retry
       executeUpload(formData);
     } else {
@@ -106,6 +113,7 @@ export const useSubmitForm = () => {
     uploadError,
     timeoutWarning,
     uploadSpeed,
+    networkStatus,
     retryUpload
   };
 };

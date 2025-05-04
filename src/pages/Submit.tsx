@@ -9,7 +9,7 @@ import VideoUploadSection from '@/components/submit-form/VideoUploadSection';
 import LegalSection from '@/components/submit-form/LegalSection';
 import SignatureSection from '@/components/submit-form/SignatureSection';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader, AlertTriangle } from "lucide-react";
+import { AlertCircle, Loader, AlertTriangle, WifiOff, RefreshCw } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 const Submit: React.FC = () => {
@@ -25,6 +25,7 @@ const Submit: React.FC = () => {
     uploadError,
     timeoutWarning,
     uploadSpeed,
+    networkStatus,
     retryUpload
   } = useSubmitForm();
   
@@ -49,11 +50,37 @@ const Submit: React.FC = () => {
   const videoFile = form.watch('video') as File | undefined;
   const videoFileSize = videoFile instanceof File ? formatFileSize(videoFile.size) : null;
 
+  // Network status warning
+  const renderNetworkAlert = () => {
+    if (networkStatus === 'offline') {
+      return (
+        <Alert className="bg-red-50 border-red-200 text-red-800 mt-4">
+          <WifiOff className="h-4 w-4 text-red-600" />
+          <AlertDescription className="font-bold">
+            You are currently offline. Please check your internet connection before submitting.
+          </AlertDescription>
+        </Alert>
+      );
+    } else if (networkStatus === 'slow') {
+      return (
+        <Alert className="bg-amber-50 border-amber-200 text-amber-800 mt-4">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="font-bold">
+            Your internet connection appears to be slow. Uploads may take longer than expected.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    return null;
+  };
+
   return (
     <SubmitFormLayout>
       <Form {...form}>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PersonalInfoSection form={form} />
+          
+          {renderNetworkAlert()}
           
           <VideoUploadSection 
             form={form} 
@@ -97,21 +124,30 @@ const Submit: React.FC = () => {
               <AlertCircle className="h-4 w-4 text-red-600" />
               <AlertDescription className="font-bold">
                 {uploadError}
-                {uploadError.includes("timeout") && (
-                  <div className="mt-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={retryUpload} 
-                      className="mt-2"
-                    >
-                      Retry Upload
-                    </Button>
-                    <p className="text-sm mt-2">
-                      Tip: Try compressing your video file to reduce its size before uploading.
-                    </p>
-                  </div>
-                )}
+                <div className="mt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={retryUpload} 
+                    className="mt-2 flex items-center gap-2"
+                    disabled={networkStatus === 'offline'}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Retry Upload
+                  </Button>
+                  {uploadError.includes("timeout") || uploadError.includes("connection") ? (
+                    <div className="text-sm mt-4 space-y-2 bg-gray-50 p-3 rounded-md border border-gray-200">
+                      <p className="font-medium">Troubleshooting tips:</p>
+                      <ul className="list-disc list-inside space-y-1 text-sm">
+                        <li>Try using a wired internet connection if available</li>
+                        <li>Reduce your video file size by compressing it before uploading</li>
+                        <li>Try using a different network (mobile hotspot or different WiFi)</li>
+                        <li>Make sure no other bandwidth-intensive applications are running</li>
+                        <li>If on mobile, try switching from WiFi to cellular data or vice versa</li>
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
               </AlertDescription>
             </Alert>
           )}
@@ -125,7 +161,7 @@ const Submit: React.FC = () => {
           
           <Button 
             type="submit" 
-            disabled={submitting}
+            disabled={submitting || networkStatus === 'offline'}
             className="w-full bg-[#6C63FF] hover:bg-[#5952cc] text-white font-bold py-4 text-lg uppercase mt-6"
           >
             {submitting ? (
@@ -165,6 +201,9 @@ const Submit: React.FC = () => {
                     <li>Try compressing your video with tools like HandBrake</li>
                     <li>Close other bandwidth-intensive applications</li>
                     <li>Upload during off-peak hours when internet traffic is lower</li>
+                    {networkStatus === 'slow' && (
+                      <li className="text-amber-700 font-medium">Your connection appears to be slow - consider trying a different network</li>
+                    )}
                   </ul>
                 </div>
               </div>

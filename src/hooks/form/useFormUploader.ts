@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 
 interface UploaderOptions {
@@ -11,17 +10,97 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [timeoutWarning, setTimeoutWarning] = useState(false);
   const [uploadSpeed, setUploadSpeed] = useState<string | null>(null);
+  const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'slow'>('online');
   const { toast } = useToast();
   
   // Increased timeouts
   const UPLOAD_TIMEOUT = 600000; // 10 minutes (increased from 8)
   const WARNING_TIMEOUT = 90000; // 90 seconds (increased from 45)
+  const CONNECTION_CHECK_INTERVAL = 5000; // Check connection every 5 seconds
   
   // For speed calculation
   let lastLoaded = 0;
   let lastTime = 0;
+  
+  // Monitor network status
+  useEffect(() => {
+    const handleOnline = () => {
+      setNetworkStatus('online');
+      toast({
+        title: "You're back online",
+        description: "Your connection has been restored. You can continue with your upload.",
+        duration: 5000,
+      });
+    };
+    
+    const handleOffline = () => {
+      setNetworkStatus('offline');
+      toast({
+        title: "You're offline",
+        description: "Your connection appears to be down. Please check your internet connection.",
+        variant: "destructive",
+        duration: 10000,
+      });
+    };
+    
+    // Check connection quality periodically
+    const checkConnectionQuality = async () => {
+      if (navigator.onLine) {
+        try {
+          const start = Date.now();
+          // Use a tiny image to test connection speed
+          await fetch('https://www.google.com/favicon.ico', { 
+            mode: 'no-cors',
+            cache: 'no-cache',
+          });
+          const duration = Date.now() - start;
+          
+          // If fetch takes more than 2 seconds, connection is likely slow
+          if (duration > 2000 && networkStatus !== 'slow') {
+            setNetworkStatus('slow');
+            toast({
+              title: "Slow connection detected",
+              description: "Your internet connection appears to be slow. Uploads might take longer than expected.",
+              variant: "default",
+              duration: 7000,
+            });
+          } else if (duration <= 2000 && networkStatus === 'slow') {
+            setNetworkStatus('online');
+          }
+        } catch (error) {
+          console.error("Connection test failed:", error);
+          // Keep current status, as the error might be unrelated to connection speed
+        }
+      }
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    const connectionCheckInterval = setInterval(checkConnectionQuality, CONNECTION_CHECK_INTERVAL);
+    
+    // Initial check
+    checkConnectionQuality();
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(connectionCheckInterval);
+    };
+  }, [networkStatus, toast]);
 
   const executeUpload = (uploadFormData: FormData) => {
+    // Check if we're offline before even starting
+    if (!navigator.onLine) {
+      toast({
+        title: "You're offline",
+        description: "Please check your internet connection before attempting to upload.",
+        variant: "destructive",
+      });
+      onError("You're offline. Please check your internet connection and try again.");
+      return;
+    }
+    
     setUploadProgress(0);
     setTimeoutWarning(false);
     setUploadSpeed(null);
@@ -35,10 +114,25 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
     // Store controller for cleanup
     let warningTimeoutId: number | undefined;
     let speedUpdateId: number | undefined;
+    let connectionCheckId: number | undefined;
     
     // Initialize time tracking
     lastLoaded = 0;
     lastTime = Date.now();
+    
+    // Periodically check if connection was lost during upload
+    connectionCheckId = window.setInterval(() => {
+      if (!navigator.onLine) {
+        xhr.abort();
+        clearInterval(connectionCheckId);
+        onError("Connection lost during upload. Please check your internet connection and try again.");
+        toast({
+          title: "Connection lost",
+          description: "Your internet connection was lost during upload. Please reconnect and try again.",
+          variant: "destructive",
+        });
+      }
+    }, 3000);
     
     // Track upload progress
     xhr.upload.onprogress = (event) => {
@@ -63,6 +157,11 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
             speedText = `${(speed / (1024 * 1024)).toFixed(1)} MB/s`;
           }
           
+          // Check for extremely slow speeds that might indicate connection problems
+          if (speed < 10 * 1024) { // Less than 10 KB/s
+            setNetworkStatus('slow');
+          }
+          
           setUploadSpeed(speedText);
           
           // Estimate remaining time
@@ -81,6 +180,20 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
           // Reset for next calculation
           lastLoaded = event.loaded;
           lastTime = now;
+          
+          // If speed is extremely slow (less than 5KB/s for more than a few seconds),
+          // show a warning that might indicate network issues
+          if (speed < 5 * 1024 && percentComplete > 10) {
+            if (!timeoutWarning) {
+              setTimeoutWarning(true);
+              toast({
+                title: "Very slow upload speed detected",
+                description: "Your connection appears to be very slow. Consider trying from a different network or reducing file size.",
+                variant: "default",
+                duration: 10000,
+              });
+            }
+          }
         }
         
         // Reset warning if we're making progress
@@ -117,6 +230,7 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
     xhr.onload = function() {
       clearTimeout(warningTimeoutId);
       clearInterval(speedUpdateId);
+      clearInterval(connectionCheckId);
       if (xhr.status >= 200 && xhr.status < 300) {
         console.log("Form submitted successfully");
         onSuccess();
@@ -126,10 +240,21 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
         });
       } else {
         console.error(`Submission error: ${xhr.status}`, xhr.responseText);
-        onError(`Error ${xhr.status}: ${xhr.responseText || 'Unknown error occurred'}`);
+        let errorMessage = `Error ${xhr.status}: ${xhr.responseText || 'Unknown error occurred'}`;
+        
+        // Provide more helpful messages for common HTTP errors
+        if (xhr.status === 413) {
+          errorMessage = "The file is too large for the server to process. Please use a smaller file.";
+        } else if (xhr.status === 429) {
+          errorMessage = "Too many requests. Please wait a moment before trying again.";
+        } else if (xhr.status >= 500) {
+          errorMessage = "Server error. The upload service may be experiencing issues. Please try again later.";
+        }
+        
+        onError(errorMessage);
         toast({
           title: "Submission failed",
-          description: `Error ${xhr.status}: ${xhr.responseText || 'Unknown error occurred'}`,
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -138,11 +263,20 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
     xhr.onerror = function() {
       clearTimeout(warningTimeoutId);
       clearInterval(speedUpdateId);
+      clearInterval(connectionCheckId);
       console.error("Network error during submission");
-      onError("Network error. Please check your connection and try again.");
+      
+      let errorMessage = "Network error. Please check your connection and try again.";
+      if (networkStatus === 'offline') {
+        errorMessage = "You appear to be offline. Please check your internet connection and try again.";
+      } else if (networkStatus === 'slow') {
+        errorMessage = "Your connection is unstable or very slow. Please try using a more stable internet connection.";
+      }
+      
+      onError(errorMessage);
       toast({
         title: "Submission failed",
-        description: "Network error occurred. Please check your connection and try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     };
@@ -150,6 +284,7 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
     xhr.ontimeout = function() {
       clearTimeout(warningTimeoutId);
       clearInterval(speedUpdateId);
+      clearInterval(connectionCheckId);
       console.error("Request timed out");
       onError("The upload timed out. Please try again with a smaller file or better connection.");
       toast({
@@ -163,6 +298,7 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
     xhr.onabort = function() {
       clearTimeout(warningTimeoutId);
       clearInterval(speedUpdateId);
+      clearInterval(connectionCheckId);
       console.error("Request aborted");
       onError("The upload was aborted. Please try again with a smaller file or better connection.");
       toast({
@@ -185,6 +321,10 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
         clearInterval(speedUpdateId);
       }
       
+      if (connectionCheckId) {
+        clearInterval(connectionCheckId);
+      }
+      
       if (xhr && xhr.readyState !== 4) {
         xhr.abort();
       }
@@ -195,6 +335,7 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
     uploadProgress,
     timeoutWarning,
     uploadSpeed,
+    networkStatus,
     executeUpload
   };
 }
