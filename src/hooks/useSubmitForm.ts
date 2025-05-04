@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 // Schema definition
 const formSchema = z.object({
@@ -13,11 +13,11 @@ const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   location: z.string().min(1, "Please enter where this was filmed"),
   description: z.string().optional(),
-  agreeTerms: z.literal(true, {
-    errorMap: () => ({ message: "You must agree to the terms and conditions" }),
+  agreeTerms: z.boolean().refine(val => val === true, {
+    message: "You must agree to the terms and conditions"
   }),
-  noOtherSubmission: z.literal(true, {
-    errorMap: () => ({ message: "You must confirm that you have not submitted this clip elsewhere" }),
+  noOtherSubmission: z.boolean().refine(val => val === true, {
+    message: "You must confirm that you have not submitted this clip elsewhere"
   }),
   keepInTouch: z.boolean().optional(),
   signature: z.string().min(1, "Your signature is required"),
