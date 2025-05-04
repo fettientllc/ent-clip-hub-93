@@ -67,49 +67,51 @@ const UserInfo: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <Header />
       
-      <main className="flex-grow container mx-auto px-4 py-6 max-w-md">
-        <div className="pt-4">
-          <h1 className="text-4xl font-bold text-center text-gray-900 mb-4">Your Information</h1>
-          
-          <div className="border-t border-gray-300 my-4"></div>
-          
-          <p className="text-gray-700 mb-8">
-            In order to complete your clip submission, both you and a guardian must sign the digital contracts sent to the email addresses provided below. Please note that clips with unsigned contracts cannot be considered for use.
-          </p>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <main className="flex-grow px-5 py-6 max-w-md mx-auto w-full">
+        <h1 className="text-3xl font-bold text-gray-800 mb-4 text-center">Your Information</h1>
+        
+        <div className="border-t border-gray-300 my-4"></div>
+        
+        <p className="text-gray-700 mb-6">
+          In order to complete your clip submission, both you and a guardian must sign the digital contracts sent to the email addresses provided below. Please note that clips with unsigned contracts cannot be considered for use.
+        </p>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
                 <FormField
                   control={form.control}
                   name="firstName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-700">First Name *</FormLabel>
+                      <FormLabel className="text-gray-700 font-medium">First Name *</FormLabel>
                       <FormControl>
                         <Input 
                           {...field} 
-                          className="bg-white border-gray-300 text-gray-900" 
+                          className="bg-white border border-gray-300 h-12 rounded-sm text-gray-800" 
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+              </div>
+              
+              <div>
                 <FormField
                   control={form.control}
                   name="lastName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-700">Last Name *</FormLabel>
+                      <FormLabel className="text-gray-700 font-medium">Last Name *</FormLabel>
                       <FormControl>
                         <Input 
                           {...field} 
-                          className="bg-white border-gray-300 text-gray-900" 
+                          className="bg-white border border-gray-300 h-12 rounded-sm text-gray-800" 
                         />
                       </FormControl>
                       <FormMessage />
@@ -117,53 +119,57 @@ const UserInfo: React.FC = () => {
                   )}
                 />
               </div>
-              
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700">Email *</FormLabel>
-                    <FormControl>
-                      <Input 
-                        {...field} 
-                        type="email"
-                        className="bg-white border-gray-300 text-gray-900" 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            </div>
+            
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-gray-700 font-medium">Email *</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      type="email"
+                      className="bg-white border border-gray-300 h-12 rounded-sm text-gray-800" 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid grid-cols-2 gap-6">
+              <div>
                 <FormField
                   control={form.control}
                   name="parentFirstName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-700">Parent First Name *</FormLabel>
+                      <FormLabel className="text-gray-700 font-medium">Parent First Name *</FormLabel>
                       <FormControl>
                         <Input 
                           {...field} 
-                          className="bg-white border-gray-300 text-gray-900" 
+                          className="bg-white border border-gray-300 h-12 rounded-sm text-gray-800" 
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+              </div>
+              
+              <div>
                 <FormField
                   control={form.control}
                   name="parentLastName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-700">Parent Last Name *</FormLabel>
+                      <FormLabel className="text-gray-700 font-medium">Parent Last Name *</FormLabel>
                       <FormControl>
                         <Input 
                           {...field} 
-                          className="bg-white border-gray-300 text-gray-900" 
+                          className="bg-white border border-gray-300 h-12 rounded-sm text-gray-800" 
                         />
                       </FormControl>
                       <FormMessage />
@@ -171,99 +177,102 @@ const UserInfo: React.FC = () => {
                   )}
                 />
               </div>
-              
+            </div>
+            
+            <FormField
+              control={form.control}
+              name="parentEmail"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-gray-700 font-medium">Parent Email *</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      type="email"
+                      className="bg-white border border-gray-300 h-12 rounded-sm text-gray-800" 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="space-y-4">
               <FormField
                 control={form.control}
-                name="parentEmail"
+                name="agreeTerms"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700">Parent Email *</FormLabel>
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                     <FormControl>
-                      <Input 
-                        {...field} 
-                        type="email"
-                        className="bg-white border-gray-300 text-gray-900" 
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="mt-1 border-gray-500"
                       />
                     </FormControl>
-                    <FormMessage />
+                    <div className="space-y-1 leading-none">
+                      <label className="text-gray-700 font-normal text-sm leading-relaxed">
+                        All of the information submitted through this form is true and accurate and I have reviewed and agree to the Contest Rules, <Link to="/terms" className="text-blue-500 hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-blue-500 hover:underline">Privacy Policy</Link>
+                      </label>
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />
               
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="agreeTerms"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="text-gray-700 font-normal">
-                          All of the information submitted through this form is true and accurate and I have reviewed and agree to the Contest Rules, <Link to="/terms" className="text-blue-600 hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-blue-600 hover:underline">Privacy Policy</Link>
-                        </FormLabel>
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="noOtherSubmission"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="text-gray-700 font-normal">
-                          I have not submitted this clip or signed any exclusive agreements with anyone else.
-                        </FormLabel>
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="keepInTouch"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="text-gray-700 font-normal">
-                          Keep me in the know about all things Fetti Ent.
-                        </FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="noOtherSubmission"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="mt-1 border-gray-500"
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <label className="text-gray-700 font-normal text-sm leading-relaxed">
+                        I have not submitted this clip or signed any exclusive agreements with anyone else.
+                      </label>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
               
-              <Button 
-                type="submit" 
-                disabled={submitting}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 text-xl uppercase"
-              >
-                {submitting ? "Submitting..." : "SUBMIT"}
-              </Button>
-            </form>
-          </Form>
-        </div>
+              <FormField
+                control={form.control}
+                name="keepInTouch"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="mt-1 border-gray-500"
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <label className="text-gray-700 font-normal text-sm leading-relaxed">
+                        Keep me in the know about all things Fetti Ent.
+                      </label>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <Button 
+              type="submit" 
+              disabled={submitting}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 text-xl uppercase rounded"
+            >
+              {submitting ? "Submitting..." : "SUBMIT"}
+            </Button>
+          </form>
+        </Form>
       </main>
       
       <Footer />
