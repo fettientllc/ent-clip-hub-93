@@ -24,6 +24,7 @@ const Submit: React.FC = () => {
     uploadProgress,
     uploadError,
     timeoutWarning,
+    uploadSpeed,
     retryUpload
   } = useSubmitForm();
   
@@ -74,8 +75,8 @@ const Submit: React.FC = () => {
           )}
           
           {showErrors && hasVideoError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
+            <Alert className="bg-red-50 border-red-200 text-red-800">
+              <AlertCircle className="h-4 w-4 text-red-600" />
               <AlertDescription className="font-bold">
                 Please upload a valid video file before submitting
               </AlertDescription>
@@ -83,8 +84,8 @@ const Submit: React.FC = () => {
           )}
           
           {showErrors && hasOtherErrors && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
+            <Alert className="bg-red-50 border-red-200 text-red-800">
+              <AlertCircle className="h-4 w-4 text-red-600" />
               <AlertDescription>
                 Please fix the errors above before submitting
               </AlertDescription>
@@ -92,8 +93,8 @@ const Submit: React.FC = () => {
           )}
           
           {uploadError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
+            <Alert className="bg-red-50 border-red-200 text-red-800">
+              <AlertCircle className="h-4 w-4 text-red-600" />
               <AlertDescription className="font-bold">
                 {uploadError}
                 {uploadError.includes("timeout") && (
@@ -141,6 +142,7 @@ const Submit: React.FC = () => {
                 <p className="text-sm text-center text-gray-600">
                   Uploading your video... Please don't close this page.
                   {uploadProgress > 0 && ` (${uploadProgress}% complete)`}
+                  {uploadSpeed && ` - ${uploadSpeed}`}
                 </p>
                 <Progress className="h-2" value={uploadProgress} />
                 
@@ -149,14 +151,22 @@ const Submit: React.FC = () => {
                     <AlertTriangle className="h-4 w-4 text-amber-500" />
                     <AlertDescription>
                       Upload is taking longer than expected. Large files may take several minutes.
+                      {!uploadSpeed && " Your connection appears to be slow."}
                     </AlertDescription>
                   </Alert>
                 )}
                 
-                <p className="text-xs text-center text-gray-500 mt-2">
-                  Tip: If uploads consistently fail, try compressing your video to reduce the file size.
-                  Tools like HandBrake or online video compressors can help.
-                </p>
+                <div className="text-xs text-center text-gray-500 mt-2">
+                  <p>
+                    Tips for successful uploads:
+                  </p>
+                  <ul className="list-disc list-inside mt-1 space-y-1">
+                    <li>Use a wired internet connection if possible</li>
+                    <li>Try compressing your video with tools like HandBrake</li>
+                    <li>Close other bandwidth-intensive applications</li>
+                    <li>Upload during off-peak hours when internet traffic is lower</li>
+                  </ul>
+                </div>
               </div>
             </div>
           )}

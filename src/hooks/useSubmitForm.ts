@@ -35,7 +35,7 @@ export const useSubmitForm = () => {
   
   const { videoFileName, setVideoFileName, handleVideoChange } = useVideoHandler(form);
   const { buildFormData } = useFormDataBuilder();
-  const { uploadProgress, timeoutWarning, executeUpload } = useFormUploader({
+  const { uploadProgress, timeoutWarning, uploadSpeed, executeUpload } = useFormUploader({
     onSuccess: () => {
       setSubmitting(false);
       setFormData(null); // Clear stored form data
@@ -105,6 +105,7 @@ export const useSubmitForm = () => {
     uploadProgress,
     uploadError,
     timeoutWarning,
+    uploadSpeed,
     retryUpload
   };
 };
