@@ -67,8 +67,9 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                     className="hidden"
                     accept="video/*"
                     onChange={(e) => {
-                      handleVideoChange(e); 
-                      onChange(e);
+                      handleVideoChange(e);
+                      // Fix: Pass the file object directly to onChange instead of the event
+                      onChange(e.target.files?.[0]);
                     }}
                     {...rest}
                   />
