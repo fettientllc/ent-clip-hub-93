@@ -38,7 +38,7 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                     size="sm"
                     onClick={() => {
                       setVideoFileName(null);
-                      onChange(undefined);
+                      form.setValue('video', undefined);
                     }}
                   >
                     Change Video
@@ -54,7 +54,6 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                     className="hidden" 
                     accept="video/*"
                     onChange={(e) => {
-                      onChange(e.target.files);
                       handleVideoChange(e);
                     }}
                     {...rest}

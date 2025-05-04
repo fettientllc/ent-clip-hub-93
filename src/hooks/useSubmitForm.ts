@@ -21,18 +21,22 @@ const formSchema = z.object({
   }),
   keepInTouch: z.boolean().optional(),
   signature: z.string().min(1, { message: "Your signature is required" }),
-  video: z.instanceof(FileList).refine(files => files.length > 0, {
-    message: "Please upload a video"
-  }).refine(
-    files => {
-      if (files.length === 0) return true;
-      const file = files[0];
-      return file.type.startsWith('video/');
-    },
-    {
-      message: "The file must be a video"
-    }
-  ),
+  video: z
+    .any()
+    .refine(file => file instanceof FileList && file.length > 0, {
+      message: "Please upload a video"
+    })
+    .refine(
+      file => {
+        if (file instanceof FileList && file.length > 0) {
+          return file[0].type.startsWith('video/');
+        }
+        return false;
+      },
+      {
+        message: "The file must be a video"
+      }
+    ),
 });
 
 export type SubmitFormValues = z.infer<typeof formSchema>;
@@ -61,6 +65,7 @@ export const useSubmitForm = () => {
 
   const onSubmit = async (data: SubmitFormValues) => {
     setSubmitting(true);
+    console.log("Submitting form data:", data);
     
     try {
       const formData = new FormData();
@@ -78,12 +83,16 @@ export const useSubmitForm = () => {
       formData.append('keepInTouch', (data.keepInTouch || false).toString());
       formData.append('signature', data.signature);
       
-      if (data.video.length > 0) {
+      // Handle video file upload properly
+      if (data.video instanceof FileList && data.video.length > 0) {
+        console.log("Adding video to form data:", data.video[0]);
         formData.append('video', data.video[0]);
       }
       
       // Use the provided deployed Flask backend endpoint
       const apiUrl = "https://dropbox-form-backend.onrender.com";
+      
+      console.log("Sending data to:", apiUrl);
       
       // Send the form data to the backend
       const response = await fetch(apiUrl, {
@@ -97,6 +106,7 @@ export const useSubmitForm = () => {
       }
       
       const result = await response.json();
+      console.log("Submission successful:", result);
       
       toast({
         title: "Submission successful!",
@@ -121,6 +131,7 @@ export const useSubmitForm = () => {
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setVideoFileName(e.target.files[0].name);
+      form.setValue('video', e.target.files);
     } else {
       setVideoFileName(null);
     }
