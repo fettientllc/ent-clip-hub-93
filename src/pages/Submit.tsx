@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { useSubmitForm } from '@/hooks/useSubmitForm';
@@ -21,39 +21,15 @@ const Submit: React.FC = () => {
     handleVideoChange, 
     handleSignatureChange
   } = useSubmitForm();
-  
-  // Debug form validation on mount and changes
-  useEffect(() => {
-    console.log("Submit form mounted or updated");
-    console.log("Form is valid:", form.formState.isValid);
-    console.log("Form errors:", form.formState.errors);
-    
-    // Track when video field changes specifically
-    const subscription = form.watch((value, { name }) => {
-      if (name === 'video') {
-        console.log("Video field updated:", value.video);
-      }
-    });
-    
-    return () => subscription.unsubscribe();
-  }, [form]);
 
-  // Submit handler with extra validation
-  const handleSubmit = form.handleSubmit((data) => {
-    console.log("Form submission handler triggered");
-    console.log("Form submitted with data:", data);
-    console.log("Video file type:", data.video instanceof File ? data.video.type : typeof data.video);
-    onSubmit(data);
-  });
+  const handleSubmit = form.handleSubmit(onSubmit);
 
   return (
     <SubmitFormLayout>
       <Form {...form}>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Personal Information */}
           <PersonalInfoSection form={form} />
           
-          {/* Video Upload */}
           <VideoUploadSection 
             form={form} 
             videoFileName={videoFileName} 
@@ -61,7 +37,6 @@ const Submit: React.FC = () => {
             handleVideoChange={handleVideoChange}
           />
           
-          {/* Show general form errors if any */}
           {Object.keys(form.formState.errors).length > 0 && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -71,10 +46,8 @@ const Submit: React.FC = () => {
             </Alert>
           )}
           
-          {/* Agreement Checkboxes */}
           <LegalSection form={form} />
           
-          {/* Signature Pad */}
           <SignatureSection 
             form={form} 
             handleSignatureChange={handleSignatureChange}
