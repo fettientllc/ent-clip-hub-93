@@ -21,22 +21,14 @@ const formSchema = z.object({
   }),
   keepInTouch: z.boolean().optional(),
   signature: z.string().min(1, { message: "Your signature is required" }),
-  video: z
-    .instanceof(FileList)
-    .refine(files => files.length > 0, {
-      message: "Please upload a video"
+  video: z.any()
+    .refine(file => file instanceof File, {
+      message: "Please upload a video file"
     })
-    .refine(files => {
-      if (files.length === 0) return false;
-      return files[0].type.startsWith('video/');
-    }, {
+    .refine(file => file instanceof File && file.type.startsWith('video/'), {
       message: "The file must be a video"
     })
-    .refine(files => {
-      if (files.length === 0) return false;
-      // 500MB max size limit
-      return files[0].size <= 500 * 1024 * 1024;
-    }, {
+    .refine(file => file instanceof File && file.size <= 500 * 1024 * 1024, {
       message: "Video file size must be less than 500MB"
     })
 });
@@ -86,15 +78,15 @@ export const useSubmitForm = () => {
       formData.append('signature', data.signature);
       
       // Handle video file upload properly
-      if (data.video instanceof FileList && data.video.length > 0) {
-        const videoFile = data.video[0];
+      if (data.video instanceof File) {
+        const videoFile = data.video;
         console.log("Adding video to form data:", videoFile.name, videoFile.type, videoFile.size);
         formData.append('video', videoFile);
       } else {
-        console.error("No video file found in form data");
+        console.error("No valid video file found in form data:", data.video);
         toast({
           title: "Submission failed",
-          description: "Please upload a video file before submitting.",
+          description: "Please upload a valid video file before submitting.",
           variant: "destructive",
         });
         setSubmitting(false);
@@ -147,16 +139,16 @@ export const useSubmitForm = () => {
       const file = e.target.files[0];
       console.log("Video file selected:", file.name, file.type, file.size);
       setVideoFileName(file.name);
-      form.setValue('video', e.target.files, { shouldValidate: true });
+      form.setValue('video', file, { shouldValidate: true });
     } else {
       setVideoFileName(null);
-      form.setValue('video', undefined);
+      form.setValue('video', undefined, { shouldValidate: true });
     }
   };
 
   const handleSignatureChange = (signatureData: string) => {
     setSignature(signatureData);
-    form.setValue('signature', signatureData);
+    form.setValue('signature', signatureData, { shouldValidate: true });
   };
 
   return {

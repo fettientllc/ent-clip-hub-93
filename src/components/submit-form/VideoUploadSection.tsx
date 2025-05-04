@@ -40,7 +40,7 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                       size="sm"
                       onClick={() => {
                         setVideoFileName(null);
-                        form.setValue('video', undefined);
+                        form.setValue('video', undefined, { shouldValidate: true });
                       }}
                     >
                       Change Video
