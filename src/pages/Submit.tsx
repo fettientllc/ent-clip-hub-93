@@ -22,7 +22,7 @@ const Submit: React.FC = () => {
     handleSignatureChange
   } = useSubmitForm();
   
-  const [showErrors, setShowErrors] = useState(true); // Set to true initially to show video error
+  const [showErrors, setShowErrors] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     setShowErrors(true);
@@ -30,6 +30,7 @@ const Submit: React.FC = () => {
   };
 
   const hasVideoError = !!form.formState.errors.video;
+  const hasOtherErrors = Object.keys(form.formState.errors).some(key => key !== 'video');
 
   return (
     <SubmitFormLayout>
@@ -42,6 +43,7 @@ const Submit: React.FC = () => {
             videoFileName={videoFileName} 
             setVideoFileName={setVideoFileName}
             handleVideoChange={handleVideoChange}
+            showError={showErrors && hasVideoError}
           />
           
           {showErrors && hasVideoError && (
@@ -53,7 +55,7 @@ const Submit: React.FC = () => {
             </Alert>
           )}
           
-          {showErrors && Object.keys(form.formState.errors).length > 0 && !hasVideoError && (
+          {showErrors && hasOtherErrors && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
@@ -76,15 +78,6 @@ const Submit: React.FC = () => {
           >
             {submitting ? "Submitting..." : "SUBMIT"}
           </Button>
-          
-          {hasVideoError && showErrors && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="font-bold">
-                Please upload a valid video file before submitting
-              </AlertDescription>
-            </Alert>
-          )}
         </form>
       </Form>
     </SubmitFormLayout>

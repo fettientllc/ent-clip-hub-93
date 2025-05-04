@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,15 +22,21 @@ const formSchema = z.object({
   signature: z.string().min(1, "Your signature is required"),
   video: z
     .any()
-    .refine(file => file instanceof File, {
+    .refine(file => file !== undefined && file !== null && file instanceof File, {
       message: "Please upload a valid video file",
     })
-    .refine(file => file instanceof File && file.type.startsWith('video/'), {
-      message: "Please upload a valid video file",
-    })
-    .refine(file => file instanceof File && file.size <= 500 * 1024 * 1024, {
-      message: "Video file size must be less than 500MB",
-    }),
+    .refine(
+      file => file !== undefined && file !== null && file instanceof File && file.type.startsWith('video/'), 
+      {
+        message: "Please upload a valid video file",
+      }
+    )
+    .refine(
+      file => file !== undefined && file !== null && file instanceof File && file.size <= 500 * 1024 * 1024, 
+      {
+        message: "Video file size must be less than 500MB",
+      }
+    ),
 });
 
 export type SubmitFormValues = z.infer<typeof formSchema>;
@@ -66,7 +71,7 @@ export const useSubmitForm = () => {
       });
       toast({
         title: "Video required",
-        description: "Please upload a valid video file.",
+        description: "Please upload a valid video file before submitting.",
         variant: "destructive",
       });
       return;

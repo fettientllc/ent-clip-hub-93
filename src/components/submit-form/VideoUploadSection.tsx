@@ -3,22 +3,23 @@ import React, { useRef } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
-import { Video, AlertCircle, Upload } from 'lucide-react';
+import { Video, Upload } from 'lucide-react';
 import { SubmitFormValues } from '@/hooks/useSubmitForm';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface VideoUploadSectionProps {
   form: UseFormReturn<SubmitFormValues>;
   videoFileName: string | null;
   setVideoFileName: React.Dispatch<React.SetStateAction<string | null>>;
   handleVideoChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  showError?: boolean;
 }
 
 const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({ 
   form, 
   videoFileName, 
   setVideoFileName,
-  handleVideoChange
+  handleVideoChange,
+  showError = false
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -28,7 +29,7 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const hasError = !!form.formState.errors.video;
+  const hasError = showError && !!form.formState.errors.video;
 
   return (
     <FormField
@@ -76,14 +77,6 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
             </div>
           </FormControl>
           <FormMessage className="text-red-500" />
-          {hasError && (
-            <Alert variant="destructive" className="mt-2">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Please upload a valid video file before submitting
-              </AlertDescription>
-            </Alert>
-          )}
         </FormItem>
       )}
     />
