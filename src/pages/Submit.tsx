@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -498,10 +497,6 @@ const Submit: React.FC = () => {
               </Button>
             </form>
           </Form>
-          
-          <div className="text-center mt-6 text-sm text-gray-600">
-            Powered by <span className="font-bold text-blue-600">FETTI ENT</span>
-          </div>
         </div>
       </main>
       
