@@ -20,7 +20,8 @@ const Submit: React.FC = () => {
     videoFileName, 
     setVideoFileName, 
     handleVideoChange, 
-    handleSignatureChange
+    handleSignatureChange,
+    uploadProgress
   } = useSubmitForm();
   
   const [showErrors, setShowErrors] = useState(false);
@@ -89,8 +90,9 @@ const Submit: React.FC = () => {
             <div className="mt-4">
               <p className="text-sm text-center text-gray-600 mb-2">
                 Uploading your video... Please don't close this page.
+                {uploadProgress > 0 && ` (${uploadProgress}% complete)`}
               </p>
-              <Progress className="h-2" value={100} />
+              <Progress className="h-2" value={uploadProgress} />
             </div>
           )}
         </form>

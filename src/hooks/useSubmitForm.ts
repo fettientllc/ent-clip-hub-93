@@ -45,6 +45,7 @@ export type SubmitFormValues = z.infer<typeof formSchema>;
 export const useSubmitForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -79,6 +80,7 @@ export const useSubmitForm = () => {
     }
 
     setSubmitting(true);
+    setUploadProgress(0);
 
     try {
       const formData = new FormData();
@@ -97,50 +99,91 @@ export const useSubmitForm = () => {
       formData.append('video', data.video, data.video.name);
       
       console.log("Submitting form data...");
+      console.log(`Video size: ${Math.round(data.video.size / 1024 / 1024)} MB`);
       
-      // Update the fetch with better error handling
+      // Create abort controller with a longer timeout for large files
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
       
-      const response = await fetch("https://dropbox-form-backend.onrender.com", {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal
-      });
+      // Use XMLHttpRequest for progress tracking
+      const xhr = new XMLHttpRequest();
       
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Submission error: ${response.status}`, errorText);
-        throw new Error(`Error ${response.status}: ${errorText || 'Unknown error occurred'}`);
-      }
-
-      console.log("Form submitted successfully");
-      toast({
-        title: "Submission successful!",
-        description: "Your clip has been uploaded successfully.",
-      });
-
-      navigate('/thank-you-confirmation');
-    } catch (error) {
-      console.error("Form submission error:", error);
+      // Set up the request
+      xhr.open('POST', 'https://dropbox-form-backend.onrender.com', true);
       
-      // Check if it's an abort error (timeout)
-      if (error instanceof DOMException && error.name === 'AbortError') {
+      // Track upload progress
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(percentComplete);
+          console.log(`Upload progress: ${percentComplete}%`);
+        }
+      };
+      
+      // Define success and error handlers
+      xhr.onload = function() {
+        clearTimeout(timeoutId);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          console.log("Form submitted successfully");
+          toast({
+            title: "Submission successful!",
+            description: "Your clip has been uploaded successfully.",
+          });
+          navigate('/thank-you-confirmation');
+        } else {
+          console.error(`Submission error: ${xhr.status}`, xhr.responseText);
+          toast({
+            title: "Submission failed",
+            description: `Error ${xhr.status}: ${xhr.responseText || 'Unknown error occurred'}`,
+            variant: "destructive",
+          });
+        }
+        setSubmitting(false);
+      };
+      
+      xhr.onerror = function() {
+        clearTimeout(timeoutId);
+        console.error("Network error during submission");
+        toast({
+          title: "Submission failed",
+          description: "Network error occurred. Please check your connection and try again.",
+          variant: "destructive",
+        });
+        setSubmitting(false);
+      };
+      
+      xhr.ontimeout = function() {
+        console.error("Request timed out");
         toast({
           title: "Submission timeout",
           description: "The upload is taking too long. Please try again with a smaller file or better connection.",
           variant: "destructive",
         });
-      } else {
+        setSubmitting(false);
+      };
+      
+      // Set up abort handler
+      xhr.onabort = function() {
+        console.error("Request aborted");
         toast({
-          title: "Submission failed",
-          description: "There was a problem uploading your clip. Please try again.",
+          title: "Submission aborted",
+          description: "The upload was aborted. Please try again with a smaller file or better connection.",
           variant: "destructive",
         });
-      }
-    } finally {
+        setSubmitting(false);
+      };
+      
+      // Send the request
+      xhr.send(formData);
+      
+    } catch (error) {
+      console.error("Form submission error:", error);
+      
+      toast({
+        title: "Submission failed",
+        description: "There was a problem uploading your clip. Please try again.",
+        variant: "destructive",
+      });
       setSubmitting(false);
     }
   };
@@ -207,6 +250,7 @@ export const useSubmitForm = () => {
     videoFileName,
     setVideoFileName,
     handleVideoChange,
-    handleSignatureChange
+    handleSignatureChange,
+    uploadProgress
   };
 };
