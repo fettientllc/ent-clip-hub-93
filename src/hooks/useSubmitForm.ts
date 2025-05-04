@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -47,8 +48,13 @@ export const useSubmitForm = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [timeoutWarning, setTimeoutWarning] = useState(false);
+  const [formData, setFormData] = useState<FormData | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Increased timeout for larger files (8 minutes)
+  const UPLOAD_TIMEOUT = 480000; // 8 minutes
+  const WARNING_TIMEOUT = 45000; // 45 seconds
 
   const form = useForm<SubmitFormValues>({
     resolver: zodResolver(formSchema),
@@ -65,6 +71,147 @@ export const useSubmitForm = () => {
     },
     mode: "onChange",
   });
+  
+  const buildFormData = (data: SubmitFormValues): FormData => {
+    const formData = new FormData();
+    formData.append('firstName', data.firstName);
+    formData.append('lastName', data.lastName);
+    formData.append('email', data.email);
+    formData.append('location', data.location);
+    formData.append('agreeTerms', data.agreeTerms.toString());
+    formData.append('noOtherSubmission', data.noOtherSubmission.toString());
+    formData.append('keepInTouch', (data.keepInTouch || false).toString());
+    formData.append('signature', data.signature);
+
+    if (data.description) formData.append('description', data.description);
+    
+    // Add video with a specific name to help the backend identify it
+    if (data.video instanceof File) {
+      formData.append('video', data.video, data.video.name);
+    }
+    
+    return formData;
+  };
+  
+  const executeUpload = (uploadFormData: FormData) => {
+    setSubmitting(true);
+    setUploadProgress(0);
+    setUploadError(null);
+    setTimeoutWarning(false);
+    
+    const xhr = new XMLHttpRequest();
+    
+    // Set up the request with a longer timeout
+    xhr.open('POST', 'https://dropbox-form-backend.onrender.com', true);
+    xhr.timeout = UPLOAD_TIMEOUT;
+    
+    // Store controller for cleanup
+    let warningTimeoutId: number | undefined;
+    
+    // Track upload progress
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(percentComplete);
+        console.log(`Upload progress: ${percentComplete}%`);
+        
+        // Reset warning if we're making progress
+        if (timeoutWarning && percentComplete > 0 && percentComplete % 10 === 0) {
+          setTimeoutWarning(false);
+          clearTimeout(warningTimeoutId);
+          
+          // Set a new warning timeout
+          warningTimeoutId = window.setTimeout(() => {
+            setTimeoutWarning(true);
+          }, WARNING_TIMEOUT);
+        }
+      }
+    };
+    
+    // Show warning after 45 seconds if progress stalls
+    warningTimeoutId = window.setTimeout(() => {
+      setTimeoutWarning(true);
+      toast({
+        title: "Upload taking longer than expected",
+        description: "Your connection may be slow. Please wait or try again with a smaller file.",
+        variant: "default", // Using default variant
+      });
+    }, WARNING_TIMEOUT);
+    
+    // Define success and error handlers
+    xhr.onload = function() {
+      clearTimeout(warningTimeoutId);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        console.log("Form submitted successfully");
+        setFormData(null); // Clear stored form data
+        toast({
+          title: "Submission successful!",
+          description: "Your clip has been uploaded successfully.",
+        });
+        navigate('/thank-you-confirmation');
+      } else {
+        console.error(`Submission error: ${xhr.status}`, xhr.responseText);
+        setUploadError(`Error ${xhr.status}: ${xhr.responseText || 'Unknown error occurred'}`);
+        toast({
+          title: "Submission failed",
+          description: `Error ${xhr.status}: ${xhr.responseText || 'Unknown error occurred'}`,
+          variant: "destructive",
+        });
+      }
+      setSubmitting(false);
+    };
+    
+    xhr.onerror = function() {
+      clearTimeout(warningTimeoutId);
+      console.error("Network error during submission");
+      setUploadError("Network error. Please check your connection and try again.");
+      toast({
+        title: "Submission failed",
+        description: "Network error occurred. Please check your connection and try again.",
+        variant: "destructive",
+      });
+      setSubmitting(false);
+    };
+    
+    xhr.ontimeout = function() {
+      clearTimeout(warningTimeoutId);
+      console.error("Request timed out");
+      setUploadError("The upload timed out. Please try again with a smaller file or better connection.");
+      toast({
+        title: "Submission timeout",
+        description: "The upload is taking too long. Please try again with a smaller file or better connection.",
+        variant: "destructive",
+      });
+      setSubmitting(false);
+    };
+    
+    // Set up abort handler
+    xhr.onabort = function() {
+      clearTimeout(warningTimeoutId);
+      console.error("Request aborted");
+      setUploadError("The upload was aborted. Please try again with a smaller file or better connection.");
+      toast({
+        title: "Submission aborted",
+        description: "The upload was aborted. Please try again with a smaller file or better connection.",
+        variant: "destructive",
+      });
+      setSubmitting(false);
+    };
+    
+    // Send the request
+    xhr.send(uploadFormData);
+    
+    return () => {
+      // Cleanup function
+      if (warningTimeoutId) {
+        clearTimeout(warningTimeoutId);
+      }
+      
+      if (xhr && xhr.readyState !== 4) {
+        xhr.abort();
+      }
+    };
+  };
 
   const onSubmit = async (data: SubmitFormValues) => {
     if (!data.video || !(data.video instanceof File)) {
@@ -80,123 +227,17 @@ export const useSubmitForm = () => {
       return;
     }
 
-    setSubmitting(true);
-    setUploadProgress(0);
-    setUploadError(null);
-    setTimeoutWarning(false);
-
     try {
-      const formData = new FormData();
-      formData.append('firstName', data.firstName);
-      formData.append('lastName', data.lastName);
-      formData.append('email', data.email);
-      formData.append('location', data.location);
-      formData.append('agreeTerms', data.agreeTerms.toString());
-      formData.append('noOtherSubmission', data.noOtherSubmission.toString());
-      formData.append('keepInTouch', (data.keepInTouch || false).toString());
-      formData.append('signature', data.signature);
-
-      if (data.description) formData.append('description', data.description);
+      const uploadFormData = buildFormData(data);
       
-      // Add video with a specific name to help the backend identify it
-      formData.append('video', data.video, data.video.name);
+      // Save the form data for potential retries
+      setFormData(uploadFormData);
       
       console.log("Submitting form data...");
       console.log(`Video size: ${Math.round(data.video.size / 1024 / 1024)} MB`);
       
-      // Increased timeout for large files (5 minutes)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
-      
-      // Show warning after 45 seconds
-      const warningTimeoutId = setTimeout(() => {
-        setTimeoutWarning(true);
-        toast({
-          title: "Upload taking longer than expected",
-          description: "Your connection may be slow. Please wait or try again with a smaller file.",
-          variant: "default", // Changed from "warning" to "default"
-        });
-      }, 45000);
-      
-      // Use XMLHttpRequest for progress tracking
-      const xhr = new XMLHttpRequest();
-      
-      // Set up the request
-      xhr.open('POST', 'https://dropbox-form-backend.onrender.com', true);
-      xhr.timeout = 300000; // 5 minute timeout (matching the controller timeout)
-      
-      // Track upload progress
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = Math.round((event.loaded / event.total) * 100);
-          setUploadProgress(percentComplete);
-          console.log(`Upload progress: ${percentComplete}%`);
-        }
-      };
-      
-      // Define success and error handlers
-      xhr.onload = function() {
-        clearTimeout(timeoutId);
-        clearTimeout(warningTimeoutId);
-        if (xhr.status >= 200 && xhr.status < 300) {
-          console.log("Form submitted successfully");
-          toast({
-            title: "Submission successful!",
-            description: "Your clip has been uploaded successfully.",
-          });
-          navigate('/thank-you-confirmation');
-        } else {
-          console.error(`Submission error: ${xhr.status}`, xhr.responseText);
-          setUploadError(`Error ${xhr.status}: ${xhr.responseText || 'Unknown error occurred'}`);
-          toast({
-            title: "Submission failed",
-            description: `Error ${xhr.status}: ${xhr.responseText || 'Unknown error occurred'}`,
-            variant: "destructive",
-          });
-        }
-        setSubmitting(false);
-      };
-      
-      xhr.onerror = function() {
-        clearTimeout(timeoutId);
-        clearTimeout(warningTimeoutId);
-        console.error("Network error during submission");
-        setUploadError("Network error. Please check your connection and try again.");
-        toast({
-          title: "Submission failed",
-          description: "Network error occurred. Please check your connection and try again.",
-          variant: "destructive",
-        });
-        setSubmitting(false);
-      };
-      
-      xhr.ontimeout = function() {
-        clearTimeout(warningTimeoutId);
-        console.error("Request timed out");
-        setUploadError("The upload timed out. Please try again with a smaller file or better connection.");
-        toast({
-          title: "Submission timeout",
-          description: "The upload is taking too long. Please try again with a smaller file or better connection.",
-          variant: "destructive",
-        });
-        setSubmitting(false);
-      };
-      
-      // Set up abort handler
-      xhr.onabort = function() {
-        clearTimeout(warningTimeoutId);
-        console.error("Request aborted");
-        setUploadError("The upload was aborted. Please try again with a smaller file or better connection.");
-        toast({
-          title: "Submission aborted",
-          description: "The upload was aborted. Please try again with a smaller file or better connection.",
-          variant: "destructive",
-        });
-        setSubmitting(false);
-      };
-      
-      // Send the request
-      xhr.send(formData);
+      // Execute the upload with the freshly built form data
+      executeUpload(uploadFormData);
       
     } catch (error) {
       console.error("Form submission error:", error);
@@ -207,6 +248,22 @@ export const useSubmitForm = () => {
         variant: "destructive",
       });
       setSubmitting(false);
+    }
+  };
+  
+  // Retry upload function
+  const retryUpload = () => {
+    if (formData) {
+      // Reuse the stored form data for retry
+      executeUpload(formData);
+    } else {
+      // If no stored form data (unlikely), ask user to submit again
+      setUploadError("Please submit the form again.");
+      toast({
+        title: "Retry failed",
+        description: "Please submit the form again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -259,6 +316,14 @@ export const useSubmitForm = () => {
     form.clearErrors("video");
     form.setValue('video', file, { shouldValidate: true });
     setVideoFileName(file.name);
+    
+    // Display appropriate message based on file size
+    if (file.size > 100 * 1024 * 1024) {
+      toast({
+        title: "Large file detected",
+        description: "This is a large video file. Upload may take several minutes depending on your connection speed.",
+      });
+    }
   };
 
   const handleSignatureChange = (signatureData: string) => {
@@ -275,6 +340,7 @@ export const useSubmitForm = () => {
     handleSignatureChange,
     uploadProgress,
     uploadError,
-    timeoutWarning
+    timeoutWarning,
+    retryUpload
   };
 };

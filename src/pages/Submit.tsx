@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,8 @@ const Submit: React.FC = () => {
     handleSignatureChange,
     uploadProgress,
     uploadError,
-    timeoutWarning
+    timeoutWarning,
+    retryUpload
   } = useSubmitForm();
   
   const [showErrors, setShowErrors] = useState(false);
@@ -34,6 +36,17 @@ const Submit: React.FC = () => {
 
   const hasVideoError = !!form.formState.errors.video;
   const hasOtherErrors = Object.keys(form.formState.errors).some(key => key !== 'video');
+  
+  // Helper function to format file size
+  const formatFileSize = (size: number): string => {
+    if (size < 1024) return `${size} B`;
+    else if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    else return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  };
+  
+  // Get video file size if available
+  const videoFile = form.watch('video') as File | undefined;
+  const videoFileSize = videoFile instanceof File ? formatFileSize(videoFile.size) : null;
 
   return (
     <SubmitFormLayout>
@@ -48,6 +61,17 @@ const Submit: React.FC = () => {
             handleVideoChange={handleVideoChange}
             showError={showErrors && hasVideoError}
           />
+          
+          {videoFileName && videoFileSize && (
+            <div className="text-sm text-gray-600">
+              Video size: {videoFileSize}
+              {videoFile && videoFile.size > 100 * 1024 * 1024 && (
+                <span className="ml-2 text-amber-600 font-medium">
+                  (Large file - upload may take several minutes)
+                </span>
+              )}
+            </div>
+          )}
           
           {showErrors && hasVideoError && (
             <Alert variant="destructive">
@@ -72,6 +96,21 @@ const Submit: React.FC = () => {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="font-bold">
                 {uploadError}
+                {uploadError.includes("timeout") && (
+                  <div className="mt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={retryUpload} 
+                      className="mt-2"
+                    >
+                      Retry Upload
+                    </Button>
+                    <p className="text-sm mt-2">
+                      Tip: Try compressing your video file to reduce its size before uploading.
+                    </p>
+                  </div>
+                )}
               </AlertDescription>
             </Alert>
           )}
@@ -106,9 +145,9 @@ const Submit: React.FC = () => {
                 <Progress className="h-2" value={uploadProgress} />
                 
                 {timeoutWarning && (
-                  <Alert className="bg-amber-50 border-amber-300 mt-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    <AlertDescription className="text-amber-800">
+                  <Alert variant="warning" className="mt-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
                       Upload is taking longer than expected. Large files may take several minutes.
                     </AlertDescription>
                   </Alert>
@@ -116,6 +155,7 @@ const Submit: React.FC = () => {
                 
                 <p className="text-xs text-center text-gray-500 mt-2">
                   Tip: If uploads consistently fail, try compressing your video to reduce the file size.
+                  Tools like HandBrake or online video compressors can help.
                 </p>
               </div>
             </div>
