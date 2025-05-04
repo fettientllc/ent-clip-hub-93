@@ -61,18 +61,8 @@ export const useSubmitForm = () => {
     mode: "onBlur" // Validate fields when they lose focus
   });
 
-  // Debug form values
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-      console.log("Form values changed:", value);
-      if (value.video instanceof File) {
-        console.log("Video file in form:", value.video.name, value.video.type, value.video.size);
-      } else {
-        console.log("Video value:", value.video);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
+  // Removed heavy watch effect for better performance
+  // Only log when form is submitted
 
   const onSubmit = async (data: SubmitFormValues) => {
     setSubmitting(true);

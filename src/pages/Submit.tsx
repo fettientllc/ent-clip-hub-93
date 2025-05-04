@@ -22,15 +22,25 @@ const Submit: React.FC = () => {
     handleSignatureChange
   } = useSubmitForm();
   
-  // Debug form validation on mount
+  // Debug form validation on mount and changes
   useEffect(() => {
-    console.log("Submit form mounted");
+    console.log("Submit form mounted or updated");
     console.log("Form is valid:", form.formState.isValid);
     console.log("Form errors:", form.formState.errors);
-  }, [form.formState]);
+    
+    // Track when video field changes specifically
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'video') {
+        console.log("Video field updated:", value.video);
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   // Submit handler with extra validation
   const handleSubmit = form.handleSubmit((data) => {
+    console.log("Form submission handler triggered");
     console.log("Form submitted with data:", data);
     console.log("Video file type:", data.video instanceof File ? data.video.type : typeof data.video);
     onSubmit(data);

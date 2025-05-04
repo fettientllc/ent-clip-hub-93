@@ -76,6 +76,8 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                       onChange={(e) => {
                         console.log("File input changed");
                         handleVideoChange(e);
+                        // CRITICAL: Call the form's onChange too so react-hook-form tracks the input
+                        onChange(e);
                       }}
                       {...rest}
                     />
