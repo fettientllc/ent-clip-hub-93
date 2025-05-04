@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -115,7 +114,7 @@ export const useSubmitForm = () => {
         toast({
           title: "Upload taking longer than expected",
           description: "Your connection may be slow. Please wait or try again with a smaller file.",
-          variant: "warning",
+          variant: "default", // Changed from "warning" to "default"
         });
       }, 45000);
       

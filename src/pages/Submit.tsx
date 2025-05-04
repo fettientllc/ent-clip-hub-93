@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
@@ -107,7 +106,7 @@ const Submit: React.FC = () => {
                 <Progress className="h-2" value={uploadProgress} />
                 
                 {timeoutWarning && (
-                  <Alert variant="warning" className="bg-amber-50 border-amber-300 mt-2">
+                  <Alert className="bg-amber-50 border-amber-300 mt-2">
                     <AlertTriangle className="h-4 w-4 text-amber-500" />
                     <AlertDescription className="text-amber-800">
                       Upload is taking longer than expected. Large files may take several minutes.
