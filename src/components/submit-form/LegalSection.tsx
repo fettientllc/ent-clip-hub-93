@@ -13,7 +13,7 @@ const LegalSection: React.FC<LegalSectionProps> = ({ form }) => {
     <div className="pt-4 border-t border-gray-200">
       <h3 className="font-medium text-gray-900 mb-4">Agreements</h3>
       <AgreementCheckboxes form={form as any} />
-      <div className="text-sm text-gray-600 mt-4">
+      <div className="text-sm text-gray-900 mt-4">
         <p>
           By submitting this form, you agree that all information provided is accurate
           and that you have the rights to share this video content.

@@ -21,7 +21,7 @@ const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ form }) => {
             <FormItem className="flex-1">
               <FormLabel>First Name</FormLabel>
               <FormControl>
-                <Input placeholder="First Name" {...field} className="bg-white border-gray-300" />
+                <Input placeholder="First Name" {...field} className="bg-white border-gray-300 text-gray-900" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -35,7 +35,7 @@ const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ form }) => {
             <FormItem className="flex-1">
               <FormLabel>Last Name</FormLabel>
               <FormControl>
-                <Input placeholder="Last Name" {...field} className="bg-white border-gray-300" />
+                <Input placeholder="Last Name" {...field} className="bg-white border-gray-300 text-gray-900" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -50,7 +50,7 @@ const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ form }) => {
           <FormItem>
             <FormLabel>Email</FormLabel>
             <FormControl>
-              <Input placeholder="Email" {...field} className="bg-white border-gray-300" />
+              <Input placeholder="Email" {...field} className="bg-white border-gray-300 text-gray-900" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -64,7 +64,7 @@ const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ form }) => {
           <FormItem>
             <FormLabel>Location</FormLabel>
             <FormControl>
-              <Input placeholder="Where was this filmed?" {...field} className="bg-white border-gray-300" />
+              <Input placeholder="Where was this filmed?" {...field} className="bg-white border-gray-300 text-gray-900" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -81,7 +81,7 @@ const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ form }) => {
               <Textarea 
                 placeholder="Tell us about your clip" 
                 {...field} 
-                className="bg-white border-gray-300 min-h-[100px]" 
+                className="bg-white border-gray-300 min-h-[100px] text-gray-900" 
               />
             </FormControl>
             <FormMessage />
