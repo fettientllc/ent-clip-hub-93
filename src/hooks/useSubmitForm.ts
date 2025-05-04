@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -91,18 +92,31 @@ export const useSubmitForm = () => {
       formData.append('signature', data.signature);
 
       if (data.description) formData.append('description', data.description);
-      formData.append('video', data.video);
-
+      
+      // Add video with a specific name to help the backend identify it
+      formData.append('video', data.video, data.video.name);
+      
+      console.log("Submitting form data...");
+      
+      // Update the fetch with better error handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      
       const response = await fetch("https://dropbox-form-backend.onrender.com", {
         method: 'POST',
         body: formData,
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Error ${response.status}: ${errorText}`);
+        console.error(`Submission error: ${response.status}`, errorText);
+        throw new Error(`Error ${response.status}: ${errorText || 'Unknown error occurred'}`);
       }
 
+      console.log("Form submitted successfully");
       toast({
         title: "Submission successful!",
         description: "Your clip has been uploaded successfully.",
@@ -110,11 +124,22 @@ export const useSubmitForm = () => {
 
       navigate('/thank-you-confirmation');
     } catch (error) {
-      toast({
-        title: "Submission failed",
-        description: "There was a problem uploading your clip. Please try again.",
-        variant: "destructive",
-      });
+      console.error("Form submission error:", error);
+      
+      // Check if it's an abort error (timeout)
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        toast({
+          title: "Submission timeout",
+          description: "The upload is taking too long. Please try again with a smaller file or better connection.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Submission failed",
+          description: "There was a problem uploading your clip. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -163,6 +188,8 @@ export const useSubmitForm = () => {
       return;
     }
 
+    console.log(`Selected video: ${file.name} (${Math.round(file.size / 1024 / 1024)} MB)`);
+    
     // Clear any previous errors
     form.clearErrors("video");
     form.setValue('video', file, { shouldValidate: true });

@@ -9,7 +9,8 @@ import VideoUploadSection from '@/components/submit-form/VideoUploadSection';
 import LegalSection from '@/components/submit-form/LegalSection';
 import SignatureSection from '@/components/submit-form/SignatureSection';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 const Submit: React.FC = () => {
   const { 
@@ -76,8 +77,22 @@ const Submit: React.FC = () => {
             disabled={submitting}
             className="w-full bg-[#6C63FF] hover:bg-[#5952cc] text-white font-bold py-4 text-lg uppercase mt-6"
           >
-            {submitting ? "Submitting..." : "SUBMIT"}
+            {submitting ? (
+              <div className="flex items-center gap-2">
+                <Loader className="h-5 w-5 animate-spin" />
+                <span>Uploading...</span>
+              </div>
+            ) : "SUBMIT"}
           </Button>
+          
+          {submitting && (
+            <div className="mt-4">
+              <p className="text-sm text-center text-gray-600 mb-2">
+                Uploading your video... Please don't close this page.
+              </p>
+              <Progress className="h-2" value={100} />
+            </div>
+          )}
         </form>
       </Form>
     </SubmitFormLayout>
