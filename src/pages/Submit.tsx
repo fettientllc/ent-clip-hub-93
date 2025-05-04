@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -59,14 +58,10 @@ const Submit: React.FC = () => {
     // Simulate API call
     setTimeout(() => {
       setSubmitting(false);
-      toast({
-        title: "Submission received!",
-        description: "We'll review your clip and get back to you soon.",
-      });
       
-      // Redirect to thank you page
-      navigate('/thank-you');
-    }, 1500);
+      // Redirect to user info page instead of thank you page
+      navigate('/user-info');
+    }, 1000);
   };
 
   return (

@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Index from "./pages/Index";
 import Submit from "./pages/Submit";
+import UserInfo from "./pages/UserInfo";
 import ThankYou from "./pages/ThankYou";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -23,6 +24,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/submit" element={<Submit />} />
+          <Route path="/user-info" element={<UserInfo />} />
           <Route path="/thank-you" element={<ThankYou />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
