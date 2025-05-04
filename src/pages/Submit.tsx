@@ -9,7 +9,7 @@ import VideoUploadSection from '@/components/submit-form/VideoUploadSection';
 import LegalSection from '@/components/submit-form/LegalSection';
 import SignatureSection from '@/components/submit-form/SignatureSection';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader } from "lucide-react";
+import { AlertCircle, Loader, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 const Submit: React.FC = () => {
@@ -21,7 +21,9 @@ const Submit: React.FC = () => {
     setVideoFileName, 
     handleVideoChange, 
     handleSignatureChange,
-    uploadProgress
+    uploadProgress,
+    uploadError,
+    timeoutWarning
   } = useSubmitForm();
   
   const [showErrors, setShowErrors] = useState(false);
@@ -66,6 +68,15 @@ const Submit: React.FC = () => {
             </Alert>
           )}
           
+          {uploadError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="font-bold">
+                {uploadError}
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <LegalSection form={form} />
           
           <SignatureSection 
@@ -88,11 +99,26 @@ const Submit: React.FC = () => {
           
           {submitting && (
             <div className="mt-4">
-              <p className="text-sm text-center text-gray-600 mb-2">
-                Uploading your video... Please don't close this page.
-                {uploadProgress > 0 && ` (${uploadProgress}% complete)`}
-              </p>
-              <Progress className="h-2" value={uploadProgress} />
+              <div className="flex flex-col space-y-2">
+                <p className="text-sm text-center text-gray-600">
+                  Uploading your video... Please don't close this page.
+                  {uploadProgress > 0 && ` (${uploadProgress}% complete)`}
+                </p>
+                <Progress className="h-2" value={uploadProgress} />
+                
+                {timeoutWarning && (
+                  <Alert variant="warning" className="bg-amber-50 border-amber-300 mt-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    <AlertDescription className="text-amber-800">
+                      Upload is taking longer than expected. Large files may take several minutes.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                <p className="text-xs text-center text-gray-500 mt-2">
+                  Tip: If uploads consistently fail, try compressing your video to reduce the file size.
+                </p>
+              </div>
             </div>
           )}
         </form>

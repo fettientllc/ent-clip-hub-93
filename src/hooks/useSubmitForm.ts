@@ -46,6 +46,8 @@ export const useSubmitForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [timeoutWarning, setTimeoutWarning] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -81,6 +83,8 @@ export const useSubmitForm = () => {
 
     setSubmitting(true);
     setUploadProgress(0);
+    setUploadError(null);
+    setTimeoutWarning(false);
 
     try {
       const formData = new FormData();
@@ -101,15 +105,26 @@ export const useSubmitForm = () => {
       console.log("Submitting form data...");
       console.log(`Video size: ${Math.round(data.video.size / 1024 / 1024)} MB`);
       
-      // Create abort controller with a longer timeout for large files
+      // Increased timeout for large files (5 minutes)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
+      
+      // Show warning after 45 seconds
+      const warningTimeoutId = setTimeout(() => {
+        setTimeoutWarning(true);
+        toast({
+          title: "Upload taking longer than expected",
+          description: "Your connection may be slow. Please wait or try again with a smaller file.",
+          variant: "warning",
+        });
+      }, 45000);
       
       // Use XMLHttpRequest for progress tracking
       const xhr = new XMLHttpRequest();
       
       // Set up the request
       xhr.open('POST', 'https://dropbox-form-backend.onrender.com', true);
+      xhr.timeout = 300000; // 5 minute timeout (matching the controller timeout)
       
       // Track upload progress
       xhr.upload.onprogress = (event) => {
@@ -123,6 +138,7 @@ export const useSubmitForm = () => {
       // Define success and error handlers
       xhr.onload = function() {
         clearTimeout(timeoutId);
+        clearTimeout(warningTimeoutId);
         if (xhr.status >= 200 && xhr.status < 300) {
           console.log("Form submitted successfully");
           toast({
@@ -132,6 +148,7 @@ export const useSubmitForm = () => {
           navigate('/thank-you-confirmation');
         } else {
           console.error(`Submission error: ${xhr.status}`, xhr.responseText);
+          setUploadError(`Error ${xhr.status}: ${xhr.responseText || 'Unknown error occurred'}`);
           toast({
             title: "Submission failed",
             description: `Error ${xhr.status}: ${xhr.responseText || 'Unknown error occurred'}`,
@@ -143,7 +160,9 @@ export const useSubmitForm = () => {
       
       xhr.onerror = function() {
         clearTimeout(timeoutId);
+        clearTimeout(warningTimeoutId);
         console.error("Network error during submission");
+        setUploadError("Network error. Please check your connection and try again.");
         toast({
           title: "Submission failed",
           description: "Network error occurred. Please check your connection and try again.",
@@ -153,7 +172,9 @@ export const useSubmitForm = () => {
       };
       
       xhr.ontimeout = function() {
+        clearTimeout(warningTimeoutId);
         console.error("Request timed out");
+        setUploadError("The upload timed out. Please try again with a smaller file or better connection.");
         toast({
           title: "Submission timeout",
           description: "The upload is taking too long. Please try again with a smaller file or better connection.",
@@ -164,7 +185,9 @@ export const useSubmitForm = () => {
       
       // Set up abort handler
       xhr.onabort = function() {
+        clearTimeout(warningTimeoutId);
         console.error("Request aborted");
+        setUploadError("The upload was aborted. Please try again with a smaller file or better connection.");
         toast({
           title: "Submission aborted",
           description: "The upload was aborted. Please try again with a smaller file or better connection.",
@@ -178,7 +201,7 @@ export const useSubmitForm = () => {
       
     } catch (error) {
       console.error("Form submission error:", error);
-      
+      setUploadError("There was a problem uploading your clip. Please try again.");
       toast({
         title: "Submission failed",
         description: "There was a problem uploading your clip. Please try again.",
@@ -251,6 +274,8 @@ export const useSubmitForm = () => {
     setVideoFileName,
     handleVideoChange,
     handleSignatureChange,
-    uploadProgress
+    uploadProgress,
+    uploadError,
+    timeoutWarning
   };
 };
