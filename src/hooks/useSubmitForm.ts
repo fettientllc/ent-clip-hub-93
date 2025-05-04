@@ -105,6 +105,9 @@ export const useSubmitForm = () => {
         // Don't set Content-Type header, it will be set automatically with the correct boundary
       });
       
+      // Response logging for debugging purposes
+      console.log("Response status:", response.status, "Status text:", response.statusText);
+      
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`Server error: ${response.status} - ${errorText}`);
@@ -138,6 +141,33 @@ export const useSubmitForm = () => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       console.log("Video file selected:", file.name, file.type, file.size);
+      
+      // Check if file is a video
+      if (!file.type.startsWith('video/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload a video file.",
+          variant: "destructive",
+        });
+        setVideoFileName(null);
+        e.target.value = '';
+        form.setValue('video', undefined, { shouldValidate: true });
+        return;
+      }
+      
+      // Check file size (500MB limit)
+      if (file.size > 500 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Video file size must be less than 500MB.",
+          variant: "destructive",
+        });
+        setVideoFileName(null);
+        e.target.value = '';
+        form.setValue('video', undefined, { shouldValidate: true });
+        return;
+      }
+      
       setVideoFileName(file.name);
       form.setValue('video', file, { shouldValidate: true });
     } else {

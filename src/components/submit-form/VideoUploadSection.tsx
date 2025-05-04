@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,9 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
   setVideoFileName,
   handleVideoChange
 }) => {
+  // Create a ref to allow resetting the file input
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   return (
     <>
       <FormField
@@ -41,6 +44,10 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                       onClick={() => {
                         setVideoFileName(null);
                         form.setValue('video', undefined, { shouldValidate: true });
+                        // Reset the file input
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = '';
+                        }
                       }}
                     >
                       Change Video
@@ -52,6 +59,7 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                     <span className="text-gray-600">Click to upload video</span>
                     <input 
                       id="video-upload" 
+                      ref={fileInputRef}
                       type="file" 
                       className="hidden" 
                       accept="video/*"
