@@ -32,6 +32,8 @@ export const useSubmitForm = () => {
       noOtherSubmission: false,
       keepInTouch: false,
       signature: "",
+      dropboxFileId: undefined,
+      dropboxFilePath: undefined,
     },
     mode: "onChange",
   });
@@ -44,8 +46,8 @@ export const useSubmitForm = () => {
       setFormData(null); // Clear stored form data
       
       toast({
-        title: "Upload received!",
-        description: "Your submission has been received and is being processed in the background. You can safely navigate away from this page.",
+        title: "Form submitted successfully!",
+        description: "Your submission has been received and is being processed.",
         duration: 8000,
       });
       
@@ -58,6 +60,7 @@ export const useSubmitForm = () => {
   });
 
   const onSubmit = async (data: SubmitFormValues) => {
+    // First, check if we have selected a video
     if (!data.video || !(data.video instanceof File)) {
       form.setError("video", {
         type: "manual",
@@ -65,10 +68,20 @@ export const useSubmitForm = () => {
       });
       return;
     }
+    
+    // Check if the video has been uploaded to Dropbox
+    if (!data.dropboxFileId || !data.dropboxFilePath) {
+      toast({
+        title: "Upload required",
+        description: "Please upload your video to Dropbox before submitting the form.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Check for offline state before attempting upload
+    // Check for offline state before attempting form submission
     if (networkStatus === 'offline') {
-      setUploadError("You appear to be offline. Please check your internet connection before uploading.");
+      setUploadError("You appear to be offline. Please check your internet connection before submitting.");
       return;
     }
 
@@ -82,44 +95,23 @@ export const useSubmitForm = () => {
       setFormData(uploadFormData);
       
       console.log("Submitting form data...");
-      console.log(`Video size: ${Math.round(data.video.size / 1024 / 1024)} MB`);
+      console.log(`Video uploaded to Dropbox with ID: ${data.dropboxFileId}`);
       
-      // Check for large files
-      if (data.video.size > 100 * 1024 * 1024) {
-        console.log("Large file detected, upload may take several minutes");
-        toast({
-          title: "Processing large file",
-          description: "Large files are uploaded in the background. You'll be redirected once the upload starts, but processing will continue.",
-          duration: 8000,
-        });
-      }
-      
-      // Execute the upload with the freshly built form data
+      // Execute the upload with the form data (which now contains Dropbox file reference)
       executeUpload(uploadFormData);
       
     } catch (error) {
       console.error("Form submission error:", error);
-      setUploadError("There was a problem uploading your clip. Please try again.");
+      setUploadError("There was a problem submitting your form. Please try again.");
       setSubmitting(false);
     }
   };
   
-  // Retry upload function with refresh attempt
+  // Retry form submission
   const retryUpload = () => {
     if (formData) {
       setSubmitting(true);
       setUploadError(null);
-      
-      // For large files, suggest compressing before retrying
-      const videoFile = form.getValues('video') as File | undefined;
-      if (videoFile && videoFile.size > 100 * 1024 * 1024) {
-        console.log("Retrying upload with large file", Math.round(videoFile.size / 1024 / 1024), "MB");
-        toast({
-          title: "Retrying large upload",
-          description: "Your video will be processed in the background after upload starts.",
-          duration: 5000,
-        });
-      }
       
       // Reuse the stored form data for retry
       executeUpload(formData);
