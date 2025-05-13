@@ -3,7 +3,7 @@ import React from "react";
 import { useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
-import { SubmitFormValues } from "./formSchema";
+import type { SubmitFormValues } from "../useSubmitForm";
 
 export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
