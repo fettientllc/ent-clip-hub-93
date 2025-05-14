@@ -108,23 +108,6 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
           <li>• Feature graphic violence or nudity</li>
         </ul>
       </div>
-      
-      <Alert className="mt-4 bg-blue-50 border-blue-200">
-        <Info className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-800 text-xs">
-          Files under 30MB work best. If your file is larger, consider using{" "}
-          <a 
-            href="https://handbrake.fr/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="underline font-semibold"
-            onClick={(e) => e.stopPropagation()}
-          >
-            HandBrake
-          </a>{" "}
-          to compress it before uploading.
-        </AlertDescription>
-      </Alert>
     </div>
   );
 

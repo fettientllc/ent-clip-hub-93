@@ -57,8 +57,8 @@ export const useCloudinaryService = () => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`);
       
-      // Set 10 minute timeout for large files
-      xhr.timeout = 600000; 
+      // Set 30 minute timeout for large files (increased from 10 minutes)
+      xhr.timeout = 1800000; 
       
       // Handle progress events
       xhr.upload.onprogress = (event) => {
@@ -125,7 +125,7 @@ export const useCloudinaryService = () => {
         console.error("Upload timeout");
         resolve({
           success: false,
-          error: 'Upload timed out. Try with a smaller file or check your internet connection.'
+          error: 'Upload timed out. Your file may be too large for your current internet connection.'
         });
       };
       
@@ -145,12 +145,12 @@ export const useCloudinaryService = () => {
     onProgress?: (progress: number) => void
   ): Promise<CloudinaryUploadResult> => {
     try {
-      // For very large files, suggest compression
-      if (file.size > 40 * 1024 * 1024) {
+      // For very large files, just provide information without suggesting compression
+      if (file.size > 500 * 1024 * 1024) {
         console.log("Large file detected:", Math.round(file.size / 1024 / 1024) + "MB");
         toast({
           title: "Large file detected",
-          description: `This ${Math.round(file.size / 1024 / 1024)}MB file may take longer to upload. For best results, consider compressing videos over 40MB.`,
+          description: `This ${Math.round(file.size / 1024 / 1024)}MB file may take longer to upload. Please keep the page open during upload.`,
           duration: 8000,
         });
       }

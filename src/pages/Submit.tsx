@@ -134,7 +134,7 @@ const Submit: React.FC = () => {
           
           <Button 
             type="submit" 
-            disabled={submitting || isUploading || (!videoFile && !videoUploaded)}
+            disabled={submitting || (isUploading && !videoUploaded) || (!videoFile && !videoUploaded)}
             className="w-full bg-[#6C63FF] hover:bg-[#5952cc] text-white font-bold py-4 text-lg uppercase mt-6"
           >
             {submitting ? (
@@ -142,7 +142,7 @@ const Submit: React.FC = () => {
                 <Loader className="h-5 w-5 animate-spin" />
                 <span>Submitting Form...</span>
               </div>
-            ) : isUploading ? (
+            ) : isUploading && !videoUploaded ? (
               <div className="flex items-center gap-2">
                 <Loader className="h-5 w-5 animate-spin" />
                 <span>Uploading Video ({uploadProgress}%)...</span>
@@ -150,7 +150,7 @@ const Submit: React.FC = () => {
             ) : "SUBMIT"}
           </Button>
           
-          {submitting && (
+          {(submitting || isUploading) && (
             <div className="mt-4">
               <div className="flex flex-col space-y-2">
                 <p className="text-sm text-center text-gray-600">

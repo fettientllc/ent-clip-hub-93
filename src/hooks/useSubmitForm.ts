@@ -47,13 +47,14 @@ export function useSubmitForm() {
 
   const { buildFormData } = useFormDataBuilder();
 
-  // Import video handling logic
+  // Import video handling logic with the uploadToCloudinary function exposed
   const {
     videoFileName,
     setVideoFileName,
     handleVideoChange,
     isUploading,
-    uploadProgress
+    uploadProgress,
+    uploadToCloudinary
   } = useVideoHandler(form);
 
   // Handle signature change
@@ -78,7 +79,7 @@ export function useSubmitForm() {
     }
   };
 
-  // Submit handler
+  // Submit handler - updated to handle video upload if not already done
   const onSubmit = async (data: SubmitFormValues) => {
     try {
       setSubmitting(true);
@@ -86,19 +87,45 @@ export function useSubmitForm() {
       
       console.log("Form submitted with data:", data);
       
-      // Get the Cloudinary values directly from the form
+      // Check if we have a video file selected but not yet uploaded to Cloudinary
+      const videoFile = form.getValues('video') as File | undefined;
       const cloudinaryFileId = form.getValues('cloudinaryFileId');
+      
+      // If we have a video file but no Cloudinary ID, we need to upload it first
+      if (videoFile instanceof File && (!cloudinaryFileId || cloudinaryFileId === "")) {
+        console.log("Video not yet uploaded to Cloudinary. Uploading now...");
+        
+        toast({
+          title: "Uploading video",
+          description: "Your video is being uploaded. Please wait...",
+        });
+        
+        // Wait for the video to upload
+        await uploadToCloudinary(videoFile);
+        
+        // Check if upload succeeded
+        const updatedCloudinaryFileId = form.getValues('cloudinaryFileId');
+        
+        if (!updatedCloudinaryFileId || updatedCloudinaryFileId === "") {
+          setUploadError("Video upload failed. Please try again.");
+          setSubmitting(false);
+          return;
+        }
+      }
+      
+      // Now get the final Cloudinary values
+      const finalCloudinaryFileId = form.getValues('cloudinaryFileId');
       const cloudinaryUrl = form.getValues('cloudinaryUrl');
       const cloudinaryPublicId = form.getValues('cloudinaryPublicId');
       
       console.log("Cloudinary data in submission:", {
-        fileId: cloudinaryFileId,
+        fileId: finalCloudinaryFileId,
         url: cloudinaryUrl,
         publicId: cloudinaryPublicId
       });
       
       // Check if video was uploaded successfully to Cloudinary
-      if (!cloudinaryFileId || !cloudinaryUrl) {
+      if (!finalCloudinaryFileId || !cloudinaryUrl) {
         setUploadError("Video upload incomplete. Please try again.");
         setSubmitting(false);
         return;
@@ -130,10 +157,6 @@ export function useSubmitForm() {
       
       console.log("Added submission with ID:", submissionId);
       
-      // Simulate API submission delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log("Submission successful!");
       toast({
         title: "Submission successful!",
         description: "Thank you for your submission.",

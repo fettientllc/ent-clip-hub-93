@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useState, useEffect } from "react";
 import { UseFormReturn } from "react-hook-form";
@@ -141,40 +140,26 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
       return;
     }
 
-    if (file.size > 500 * 1024 * 1024) {
+    // Increasing the max file size limit, we'll just warn about very large files
+    // but will still attempt to upload them
+    if (file.size > 2000 * 1024 * 1024) { // 2GB limit
       form.setError("video", {
         type: "manual",
-        message: "Video file size must be less than 500MB",
+        message: "Video file is extremely large (over 2GB), upload may take a long time",
       });
       toast({
-        title: "File too large",
-        description: "Video file size must be less than 500MB.",
-        variant: "destructive",
+        title: "Very large file",
+        description: "This video is extremely large and may take a long time to upload.",
+        variant: "warning",
+        duration: 10000,
       });
-      form.setValue('video', undefined as any, { shouldValidate: true });
-      setVideoFileName(null);
-      return;
     }
     
-    // Show compression link for large files (over 100MB)
-    if (file.size > 100 * 1024 * 1024) {
+    // Just show a notice for larger files but don't prevent upload
+    if (file.size > 300 * 1024 * 1024) {
       toast({
         title: "Large file detected",
-        description: (
-          <div>
-            Large file detected ({Math.round(file.size / 1024 / 1024)}MB). We recommend compressing it with{" "}
-            <a 
-              href="https://handbrake.fr/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="underline font-semibold"
-              onClick={(e) => e.stopPropagation()}
-            >
-              HandBrake
-            </a>{" "}
-            before uploading.
-          </div>
-        ),
+        description: `Large file (${Math.round(file.size / 1024 / 1024)}MB). Upload may take some time. Please don't close the page.`,
         duration: 10000,
       });
     }
@@ -197,6 +182,7 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
     setVideoFileName,
     handleVideoChange,
     isUploading,
-    uploadProgress
+    uploadProgress,
+    uploadToCloudinary // Expose this so we can call it from onSubmit if needed
   };
 }
