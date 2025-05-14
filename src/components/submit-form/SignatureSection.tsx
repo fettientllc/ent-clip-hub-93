@@ -19,6 +19,7 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({ form, handleSignatu
         name="signature"
         render={() => (
           <FormItem>
+            <FormLabel className="text-black font-bold text-base mb-2">Please sign below</FormLabel>
             <FormControl>
               <SignaturePad onSignatureChange={handleSignatureChange} />
             </FormControl>

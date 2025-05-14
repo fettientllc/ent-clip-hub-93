@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
@@ -102,57 +101,61 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({ form }) =
         />
       )}
       
-      <FormField
-        control={form.control}
-        name="isOwnRecording"
-        render={({ field }) => (
-          <FormItem className="space-y-3">
-            <FormLabel className="text-black font-bold">Did you record this clip?</FormLabel>
-            <FormControl>
-              <RadioGroup 
-                onValueChange={(value) => field.onChange(value === 'yes')} 
-                defaultValue={field.value ? 'yes' : 'no'}
-                className="flex space-x-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="yes" id="yes-recording" />
-                  <FormLabel htmlFor="yes-recording" className="font-normal">Yes</FormLabel>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="no" id="no-recording" />
-                  <FormLabel htmlFor="no-recording" className="font-normal">No</FormLabel>
-                </div>
-              </RadioGroup>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      
-      {!isOwnRecording && (
+      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
         <FormField
           control={form.control}
-          name="recorderName"
+          name="isOwnRecording"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-black font-bold">Who recorded this?</FormLabel>
+            <FormItem className="space-y-3">
+              <FormLabel className="text-black font-bold text-base">Did you record this clip?</FormLabel>
               <FormControl>
-                <div className="relative">
-                  <Input 
-                    placeholder="Name of person who recorded this" 
-                    {...field} 
-                    className="bg-white border-gray-300 text-gray-900 pl-10"
-                  />
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-4 w-4 text-gray-400" />
+                <RadioGroup 
+                  onValueChange={(value) => field.onChange(value === 'yes')} 
+                  defaultValue={field.value ? 'yes' : 'no'}
+                  className="flex space-x-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="yes" id="yes-recording" />
+                    <FormLabel htmlFor="yes-recording" className="font-normal">Yes</FormLabel>
                   </div>
-                </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="no" id="no-recording" />
+                    <FormLabel htmlFor="no-recording" className="font-normal">No</FormLabel>
+                  </div>
+                </RadioGroup>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-      )}
+        
+        {!isOwnRecording && (
+          <div className="mt-4 ml-6 border-l-2 border-gray-300 pl-4">
+            <FormField
+              control={form.control}
+              name="recorderName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-black font-medium">Who recorded this?</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input 
+                        placeholder="Name of person who recorded this" 
+                        {...field} 
+                        className="bg-white border-gray-300 text-gray-900 pl-10"
+                      />
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <User className="h-4 w-4 text-gray-400" />
+                      </div>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
+      </div>
       
       <FormField
         control={form.control}
