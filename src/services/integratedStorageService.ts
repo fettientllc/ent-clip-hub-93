@@ -97,17 +97,25 @@ export const useIntegratedStorageService = () => {
         // Continue without throwing
       }
       
+      // FIX: Ensure dropboxResult has a path property even if upload fails
       let dropboxResult = { success: false, path: '', error: 'Not attempted' };
       try {
         // Upload to Dropbox
-        dropboxResult = await dropboxService.uploadFile(
+        const uploadResult = await dropboxService.uploadFile(
           file,
           actualFolders.dropboxPath,
           onProgress
         );
+        
+        // Ensure path is always defined
+        dropboxResult = {
+          success: uploadResult.success,
+          path: uploadResult.path || '',
+          error: uploadResult.error || ''
+        };
       } catch (dropboxError) {
         console.warn('Dropbox upload failed:', dropboxError);
-        // Continue without throwing
+        // Continue without throwing, fallback path is already set
       }
       
       // If both uploads failed, throw error
@@ -170,16 +178,24 @@ export const useIntegratedStorageService = () => {
         // Continue without throwing
       }
       
+      // FIX: Ensure dropboxResult has a path property even if upload fails
       let dropboxResult = { success: false, path: '', error: 'Not attempted' };
       try {
         // Upload to Dropbox
-        dropboxResult = await dropboxService.uploadFile(
+        const uploadResult = await dropboxService.uploadFile(
           signatureFile,
           actualFolders.dropboxPath
         );
+        
+        // Ensure path is always defined
+        dropboxResult = {
+          success: uploadResult.success,
+          path: uploadResult.path || '',
+          error: uploadResult.error || ''
+        };
       } catch (dropboxError) {
         console.warn('Dropbox signature upload failed:', dropboxError);
-        // Continue without throwing
+        // Continue without throwing, fallback path is already set
       }
       
       // If both uploads failed, throw error
