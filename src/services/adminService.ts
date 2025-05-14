@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -389,12 +390,13 @@ export const useAdminService = (): UseAdminService => {
       }
       
       // Get the video URL from Supabase storage
-      const { data, error } = supabaseClient.storage
+      // Fix: The getPublicUrl method doesn't return an error property
+      const { data } = supabaseClient.storage
         .from('videos')
         .getPublicUrl(submission.videoPath);
       
-      if (error) {
-        console.error("Error getting video URL:", error);
+      if (!data || !data.publicUrl) {
+        console.error("Error getting video URL: No public URL returned");
         toast({
           title: "Error getting video URL",
           description: "Failed to retrieve the video URL from storage.",
@@ -424,12 +426,13 @@ export const useAdminService = (): UseAdminService => {
   
   const getVideoUrl = async (videoPath: string): Promise<string | null> => {
     try {
-      const { data, error } = await supabaseClient.storage
+      // Fix: The getPublicUrl method doesn't return an error property
+      const { data } = await supabaseClient.storage
         .from('videos')
         .getPublicUrl(videoPath);
       
-      if (error) {
-        console.error("Error getting video URL:", error);
+      if (!data || !data.publicUrl) {
+        console.error("Error getting video URL: No public URL returned");
         toast({
           title: "Error getting video URL",
           description: "Failed to retrieve the video URL from storage.",
