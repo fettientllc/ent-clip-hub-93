@@ -1,4 +1,3 @@
-
 import { useToast } from "@/hooks/use-toast";
 
 // Dropbox API credentials - these will be replaced with env variables
@@ -189,12 +188,14 @@ export const useDropboxService = () => {
    * @param content The text content to upload
    * @param fileName The filename to use
    * @param folderPath The folder path to upload to
+   * @param onProgress Optional callback for tracking upload progress
    * @returns Promise with upload response
    */
   const uploadTextFile = async (
     content: string,
     fileName: string,
-    folderPath: string
+    folderPath: string,
+    onProgress?: UploadProgressCallback
   ): Promise<UploadResponse> => {
     try {
       // Create a Blob from the text content
@@ -401,7 +402,7 @@ export const useDropboxService = () => {
           })
         );
         
-        // Track upload progress - Fixed: onprogress instead of onProgress
+        // Track upload progress
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable && onProgress) {
             const percentComplete = Math.round((event.loaded / event.total) * 100);
