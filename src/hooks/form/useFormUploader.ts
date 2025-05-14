@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,8 +14,8 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
   const { toast } = useToast();
   
   // Increased timeouts
-  const UPLOAD_TIMEOUT = 600000; // 10 minutes (increased from 8)
-  const WARNING_TIMEOUT = 90000; // 90 seconds (increased from 45)
+  const UPLOAD_TIMEOUT = 600000; // 10 minutes
+  const WARNING_TIMEOUT = 90000; // 90 seconds
   const CONNECTION_CHECK_INTERVAL = 5000; // Check connection every 5 seconds
   
   // For speed calculation
@@ -92,8 +91,9 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
   // Updated API endpoint with correct path
   const API_URL = 'https://dropbox-form-backend.onrender.com/submit';
   
-  // Render free tier typically times out after ~60 seconds
-  const RENDER_TIMEOUT_WARNING = 50000; // 50 seconds - warn before Render times out
+  // Reduced timeout warning time since we're now using Dropbox for video uploads
+  // The form submission is much smaller now (just metadata + Dropbox reference)
+  const RENDER_TIMEOUT_WARNING = 20000; // 20 seconds - since we're only sending metadata now
   
   const executeUpload = (uploadFormData: FormData) => {
     // Check if we're offline before even starting
@@ -127,12 +127,12 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
     lastLoaded = 0;
     lastTime = Date.now();
     
-    // Add specific warning for Render free tier timeout
+    // Modified warning for Dropbox integration
     renderTimeoutWarningId = window.setTimeout(() => {
       toast({
-        title: "Server timeout risk",
-        description: "The server might time out soon (free tier limitation). If upload fails, try a smaller file.",
-        variant: "destructive", // Changed from "warning" to "destructive"
+        title: "Server processing",
+        description: "The server is processing your submission. Since we're using Dropbox for your video, this should complete shortly.",
+        variant: "default", // Changed from "destructive" to less alarming "default"
         duration: 10000, // 10 seconds
       });
     }, RENDER_TIMEOUT_WARNING);
@@ -145,7 +145,7 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
         onError("Connection lost during upload. Please check your internet connection and try again.");
         toast({
           title: "Connection lost",
-          description: "Your internet connection was lost during upload. Please reconnect and try again.",
+          description: "Your internet connection was lost during form submission. Please reconnect and try again.",
           variant: "destructive",
         });
       }
@@ -218,14 +218,14 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
           setTimeoutWarning(false);
           clearTimeout(warningTimeoutId);
           
-          // Set a new warning timeout
+          // Set a new warning timeout - shorter since we're just sending metadata now
           warningTimeoutId = window.setTimeout(() => {
             setTimeoutWarning(true);
             toast({
-              title: "Upload slowing down",
-              description: "Upload speed has decreased. This could be due to network issues. You can continue waiting or try again with a smaller file.",
+              title: "Form submission taking longer than expected",
+              description: "Please wait while we process your submission. Your video has already been uploaded to Dropbox successfully.",
               variant: "default",
-              duration: 10000, // 10 seconds
+              duration: 8000,
             });
           }, WARNING_TIMEOUT);
         }
@@ -236,10 +236,10 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
     warningTimeoutId = window.setTimeout(() => {
       setTimeoutWarning(true);
       toast({
-        title: "Upload taking longer than expected",
-        description: "Your connection may be slow. Please wait or try again with a smaller file.",
+        title: "Submission taking longer than expected",
+        description: "The server is still processing your form. Your video is already safely stored in Dropbox.",
         variant: "default",
-        duration: 10000, // 10 seconds
+        duration: 8000,
       });
     }, WARNING_TIMEOUT);
     
@@ -257,14 +257,14 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
         // Customize message based on status code
         if (xhr.status === 202) {
           toast({
-            title: "Upload started",
-            description: "Your video is being processed in the background. The system will complete the upload even if you close this page.",
+            title: "Submission received",
+            description: "Your form has been submitted successfully. Your video was already uploaded to Dropbox.",
             duration: 8000,
           });
         } else {
           toast({
             title: "Submission successful!",
-            description: "Your clip has been uploaded successfully.",
+            description: "Your form has been submitted and your video was already uploaded to Dropbox.",
           });
         }
       } else {
@@ -273,17 +273,18 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
         
         // Provide more helpful messages for common HTTP errors
         if (xhr.status === 413) {
-          errorMessage = "The file is too large for the server to process. Please use a smaller file.";
+          errorMessage = "The server couldn't process some data in your form. Please try again.";
         } else if (xhr.status === 429) {
           errorMessage = "Too many requests. Please wait a moment before trying again.";
         } else if (xhr.status >= 500) {
-          errorMessage = "Server error. The upload service may be experiencing issues. Please try again later.";
+          errorMessage = "Server error. Don't worry - your video is safely stored in Dropbox. The form submission will be retried.";
         }
         
         onError(errorMessage);
         toast({
-          title: "Submission failed",
-          description: errorMessage,
+          title: "Submission needs attention",
+          description: "There was an issue submitting your form, but your video is safely stored in Dropbox. " + 
+                      "You can try submitting the form again or contact support with your Dropbox file ID.",
           variant: "destructive",
         });
       }
@@ -296,14 +297,12 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
       clearInterval(connectionCheckId);
       console.error("Network error during submission");
       
-      let errorMessage = "Network error. Please check your connection and try again.";
-      // Add specific message about Render free tier limitations
-      errorMessage = "Upload likely timed out due to server limitations. Try a smaller file or try again later.";
+      let errorMessage = "Network error during form submission. Your video is safely stored in Dropbox.";
       
       onError(errorMessage);
       toast({
-        title: "Submission failed",
-        description: "The server may have timed out (this is a free tier limitation). Try uploading a smaller file.",
+        title: "Form submission error",
+        description: "There was a network error during form submission. Your video is safely stored in Dropbox. You can try again later.",
         variant: "destructive",
       });
     };
@@ -314,10 +313,12 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
       clearInterval(speedUpdateId);
       clearInterval(connectionCheckId);
       console.error("Request timed out");
-      onError("The upload timed out. The server has a ~60 second timeout limit. Try a smaller file (under 5MB).");
+      
+      onError("The form submission timed out. Don't worry - your video is safely stored in Dropbox. You can try submitting the form again.");
+      
       toast({
-        title: "Server timeout",
-        description: "The server has a ~60 second timeout limit (free tier). Try a smaller file (under 5MB).",
+        title: "Submission timed out",
+        description: "The form submission timed out, but your video is safely stored in Dropbox. You can try again or contact support with your Dropbox file ID.",
         variant: "destructive",
       });
     };
@@ -329,15 +330,18 @@ export function useFormUploader({ onSuccess, onError }: UploaderOptions) {
       clearInterval(speedUpdateId);
       clearInterval(connectionCheckId);
       console.error("Request aborted");
-      onError("The upload was aborted. Please try again with a smaller file or better connection.");
+      
+      onError("The form submission was aborted. Your video is safely stored in Dropbox.");
+      
       toast({
         title: "Submission aborted",
-        description: "The upload was aborted. Please try again with a smaller file or better connection.",
+        description: "The form submission was aborted. Your video is safely stored in Dropbox. You can try again later.",
         variant: "destructive",
       });
     };
     
-    // Send the request
+    // Send the request with a note to the server about the Dropbox integration
+    uploadFormData.append('usingDropbox', 'true');
     xhr.send(uploadFormData);
     
     return () => {

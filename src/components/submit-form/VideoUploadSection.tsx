@@ -114,7 +114,7 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                   {uploadComplete ? (
                     <div className="flex items-center gap-2 text-green-600">
                       <CheckCircle2 className="h-6 w-6" />
-                      <span className="font-medium">Upload complete!</span>
+                      <span className="font-medium">Uploaded to Dropbox!</span>
                     </div>
                   ) : (
                     <Video className="h-12 w-12 text-blue-600" />
@@ -199,6 +199,12 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                   >
                     Remove Video
                   </Button>
+                  
+                  {uploadComplete && (
+                    <div className="text-xs text-green-600 mt-1">
+                      Your video is safely stored in Dropbox. Continue filling out the form.
+                    </div>
+                  )}
                 </div>
               ) : (
                 <label htmlFor="video-upload" className="cursor-pointer flex flex-col items-center gap-3 w-full h-full justify-center">

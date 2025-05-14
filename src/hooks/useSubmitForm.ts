@@ -47,7 +47,7 @@ export const useSubmitForm = () => {
       
       toast({
         title: "Form submitted successfully!",
-        description: "Your submission has been received and is being processed.",
+        description: "Your video has been saved to Dropbox and your form information has been submitted.",
         duration: 8000,
       });
       
@@ -95,7 +95,10 @@ export const useSubmitForm = () => {
       setFormData(uploadFormData);
       
       console.log("Submitting form data...");
-      console.log(`Video uploaded to Dropbox with ID: ${data.dropboxFileId}`);
+      console.log(`Video already uploaded to Dropbox with ID: ${data.dropboxFileId}`);
+      
+      // Add a flag indicating we're using the Dropbox workflow
+      uploadFormData.append('usingDropboxWorkflow', 'true');
       
       // Execute the upload with the form data (which now contains Dropbox file reference)
       executeUpload(uploadFormData);
