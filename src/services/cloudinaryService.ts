@@ -1,3 +1,4 @@
+
 import { useToast } from "@/hooks/use-toast";
 
 interface CloudinaryUploadResponse {
@@ -44,13 +45,10 @@ export const useCloudinaryService = () => {
     onProgress?: (progress: number) => void
   ): Promise<CloudinaryUploadResult> => {
     try {
-      // Using unsigned upload with a preset
-      const uploadPreset = 'ml_default'; // Using ml_default which is a default preset in Cloudinary
-      
       // Create a FormData object to send the file
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', uploadPreset);
+      formData.append('upload_preset', 'unsigned_upload'); // Try with a different preset name
       formData.append('api_key', apiKey);
       formData.append('resource_type', 'video');
       
@@ -96,6 +94,21 @@ export const useCloudinaryService = () => {
               errorMessage = `HTTP error: ${xhr.status}`;
             }
             
+            console.error("Upload failed:", errorMessage);
+            
+            // Try alternative approach without preset
+            if (errorMessage.includes("preset not found")) {
+              // Attempt alternative upload without preset
+              return uploadWithoutPreset(file, onProgress)
+                .then(result => resolve(result))
+                .catch(err => {
+                  resolve({
+                    success: false,
+                    error: `Alternative upload failed: ${err.message}`
+                  });
+                });
+            }
+            
             resolve({
               success: false,
               error: errorMessage
@@ -105,10 +118,16 @@ export const useCloudinaryService = () => {
         
         // Handle network errors
         xhr.onerror = () => {
-          resolve({
-            success: false,
-            error: 'Network error occurred during upload'
-          });
+          console.error("Network error during upload");
+          // Try alternative upload method
+          uploadWithoutPreset(file, onProgress)
+            .then(result => resolve(result))
+            .catch(err => {
+              resolve({
+                success: false,
+                error: 'Network error occurred during upload'
+              });
+            });
         };
         
         // Handle timeout
@@ -122,7 +141,6 @@ export const useCloudinaryService = () => {
         // Add debugging information
         console.log('Uploading to Cloudinary:', {
           cloudName,
-          uploadPreset,
           fileName: file.name,
           fileSize: file.size
         });
@@ -139,6 +157,98 @@ export const useCloudinaryService = () => {
         error: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }
+  };
+  
+  // Alternative upload method without using preset
+  const uploadWithoutPreset = async (
+    file: File, 
+    onProgress?: (progress: number) => void
+  ): Promise<CloudinaryUploadResult> => {
+    return new Promise((resolve, reject) => {
+      try {
+        // Create a timestamp and signature for unsigned upload
+        const timestamp = Math.round(new Date().getTime() / 1000);
+        
+        // Create FormData object
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('api_key', apiKey);
+        formData.append('timestamp', timestamp.toString());
+        formData.append('resource_type', 'video');
+        
+        // Set up the request
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`);
+        
+        // Track progress
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable && onProgress) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            onProgress(progress);
+          }
+        };
+        
+        // Handle response
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              if (response.public_id) {
+                resolve({
+                  success: true,
+                  fileId: response.public_id,
+                  url: response.secure_url,
+                  publicId: response.public_id
+                });
+              } else {
+                resolve({
+                  success: false,
+                  error: 'Upload successful but no public ID returned'
+                });
+              }
+            } catch (e) {
+              resolve({
+                success: false,
+                error: 'Failed to parse server response'
+              });
+            }
+          } else {
+            let errorMessage = 'Upload failed';
+            try {
+              const errorResponse = JSON.parse(xhr.responseText);
+              errorMessage = errorResponse.error?.message || 'Unknown error occurred';
+            } catch (e) {
+              errorMessage = `HTTP error: ${xhr.status}`;
+            }
+            console.error("Alternative upload failed:", errorMessage);
+            resolve({
+              success: false,
+              error: errorMessage
+            });
+          }
+        };
+        
+        // Handle errors
+        xhr.onerror = () => {
+          console.error("Network error in alternative upload");
+          resolve({
+            success: false,
+            error: 'Network error occurred during alternative upload'
+          });
+        };
+        
+        console.log('Trying alternative Cloudinary upload:', {
+          cloudName,
+          fileName: file.name,
+          fileSize: file.size
+        });
+        
+        xhr.send(formData);
+      } catch (error) {
+        console.error("Error in alternative upload:", error);
+        reject(error);
+      }
+    });
   };
   
   const getVideoUrl = (publicId: string): string => {
