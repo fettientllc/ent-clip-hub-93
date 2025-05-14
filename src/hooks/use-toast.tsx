@@ -8,10 +8,10 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
-import { useToast as useToastOriginal } from "@/components/ui/toast"
+import { useToast } from "./use-toast-impl"
 
 export function Toaster() {
-  const { toasts } = useToastOriginal()
+  const { toasts } = useToast()
 
   return (
     <ToastProvider>
@@ -34,4 +34,5 @@ export function Toaster() {
   )
 }
 
-export { useToastOriginal as useToast, toast } from "@/components/ui/toast"
+// Re-export from the implementation
+export { useToast, toast } from "./use-toast-impl"

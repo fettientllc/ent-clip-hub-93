@@ -1,5 +1,4 @@
-
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface CloudinaryUploadResponse {
   asset_id?: string;
