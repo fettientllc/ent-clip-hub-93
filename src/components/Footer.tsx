@@ -13,16 +13,16 @@ const Footer: React.FC = () => {
           <Link to="/privacy" className="text-gray-700 hover:text-blue-600 transition-colors font-bold">
             PRIVACY
           </Link>
-          <a href="https://www.youtube.com/fettient" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-blue-600 transition-colors font-bold">
+          <a href="https://youtube.com/@submitvideos?si=lu0zEejnC1uJmCrc" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-blue-600 transition-colors font-bold">
             YOUTUBE
           </a>
-          <a href="https://www.facebook.com/fettient" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-blue-600 transition-colors font-bold">
+          <a href="https://www.facebook.com/share/1AdrP9HNtU/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-blue-600 transition-colors font-bold">
             FACEBOOK
           </a>
-          <a href="https://www.instagram.com/fettient" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-blue-600 transition-colors font-bold">
+          <a href="https://www.Instagram.com/itsfettient" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-blue-600 transition-colors font-bold">
             INSTAGRAM
           </a>
-          <a href="https://www.tiktok.com/@fettient" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-blue-600 transition-colors font-bold">
+          <a href="https://www.tiktok.com/@fetti.ent" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-blue-600 transition-colors font-bold">
             TIKTOK
           </a>
         </nav>

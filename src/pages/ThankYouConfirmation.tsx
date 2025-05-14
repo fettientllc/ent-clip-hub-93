@@ -31,20 +31,12 @@ const ThankYouConfirmation: React.FC = () => {
             
             <div className="flex flex-wrap justify-center gap-4 mb-6">
               <a 
-                href="https://www.instagram.com/fettient" 
+                href="https://www.Instagram.com/itsfettient" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-black hover:text-blue-600 transition-colors"
               >
-                @fettient
-              </a>
-              <a 
-                href="https://www.tiktok.com/@fettient" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-black hover:text-blue-600 transition-colors"
-              >
-                @fettient
+                @itsfettient
               </a>
             </div>
           </div>
