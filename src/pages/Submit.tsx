@@ -9,7 +9,7 @@ import VideoUploadSection from '@/components/submit-form/VideoUploadSection';
 import LegalSection from '@/components/submit-form/LegalSection';
 import SignatureSection from '@/components/submit-form/SignatureSection';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader, AlertTriangle, WifiOff, RefreshCw, Info } from "lucide-react";
+import { AlertCircle, Loader, AlertTriangle, WifiOff, RefreshCw, Info, FolderTree } from "lucide-react";
 
 const Submit: React.FC = () => {
   const { 
@@ -75,6 +75,13 @@ const Submit: React.FC = () => {
 
   return (
     <SubmitFormLayout>
+      <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-6">
+        <FolderTree className="h-4 w-4 text-blue-600" />
+        <AlertDescription>
+          <span className="font-medium">Submission Organization:</span> Each submission (your video, form, and signature) will be stored in its own folder in our Dropbox.
+        </AlertDescription>
+      </Alert>
+      
       <Form {...form}>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PersonalInfoSection form={form} />
@@ -177,7 +184,7 @@ const Submit: React.FC = () => {
             <div className="mt-4">
               <div className="flex flex-col space-y-2">
                 <p className="text-sm text-center text-gray-600">
-                  Submitting your form to Dropbox... Please don't close this page.
+                  Creating your submission folder and saving all files... Please don't close this page.
                 </p>
               </div>
             </div>

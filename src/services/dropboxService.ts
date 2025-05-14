@@ -1,3 +1,4 @@
+
 import { useToast } from "@/hooks/use-toast";
 
 // Dropbox API credentials
@@ -23,19 +24,66 @@ export const useDropboxService = () => {
   const { toast } = useToast();
 
   /**
+   * Create a folder in Dropbox
+   * @param folderPath The path for the new folder
+   * @returns Promise with response indicating success
+   */
+  const createFolder = async (folderPath: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${DROPBOX_API_AUTH_URL}/files/create_folder_v2`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${DROPBOX_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          path: folderPath,
+          autorename: true
+        })
+      });
+      
+      if (response.ok) {
+        return true;
+      } else {
+        console.error("Failed to create folder:", await response.text());
+        return false;
+      }
+    } catch (error) {
+      console.error("Error creating folder:", error);
+      return false;
+    }
+  };
+
+  /**
+   * Create a submission folder with timestamp and user information
+   */
+  const createSubmissionFolder = async (firstName: string, lastName: string): Promise<string | null> => {
+    // Create a unique folder name with timestamp and user info
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const folderName = `/submissions/${timestamp}_${firstName}_${lastName}`;
+    
+    const success = await createFolder(folderName);
+    if (success) {
+      return folderName;
+    }
+    return null;
+  };
+
+  /**
    * Upload a file to Dropbox
    * @param file The file to upload
+   * @param folderPath The folder path to upload to
    * @param onProgress Callback for upload progress
    * @returns Promise with upload response
    */
   const uploadFile = async (
     file: File,
+    folderPath: string = "/uploads",
     onProgress?: UploadProgressCallback
   ): Promise<UploadResponse> => {
     try {
-      // File path in Dropbox - we'll use a subfolder with timestamp to avoid conflicts
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const path = `/uploads/${timestamp}_${file.name}`;
+      // File path in Dropbox
+      const path = `${folderPath}/${file.name}`;
       
       // For larger files, we'd use the upload session API
       // but for simplicity in this example, we're using the simple upload endpoint
@@ -61,26 +109,25 @@ export const useDropboxService = () => {
   };
 
   /**
-   * Upload JSON data as a file to Dropbox
-   * @param data The JSON data to upload
-   * @param filename The filename to use
+   * Upload text content as a file to Dropbox
+   * @param content The text content to upload
+   * @param fileName The filename to use
+   * @param folderPath The folder path to upload to
    * @returns Promise with upload response
    */
-  const uploadFormDataAsJson = async (
-    data: Record<string, any>,
-    filename: string
+  const uploadTextFile = async (
+    content: string,
+    fileName: string,
+    folderPath: string
   ): Promise<UploadResponse> => {
     try {
-      // Create a JSON string from the data
-      const jsonString = JSON.stringify(data, null, 2);
-      // Create a Blob from the JSON string
-      const jsonBlob = new Blob([jsonString], { type: 'application/json' });
+      // Create a Blob from the text content
+      const textBlob = new Blob([content], { type: 'text/plain' });
       
-      // File path in Dropbox - we'll put form data in a forms subfolder
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const path = `/forms/${timestamp}_${filename}`;
+      // File path in Dropbox
+      const path = `${folderPath}/${fileName}`;
       
-      // Use the XMLHttpRequest to upload the JSON data
+      // Use the XMLHttpRequest to upload the text data
       const xhr = new XMLHttpRequest();
       
       // Create a promise to handle the async upload
@@ -132,9 +179,55 @@ export const useDropboxService = () => {
           });
         };
         
-        // Upload the JSON blob
-        xhr.send(jsonBlob);
+        // Upload the text blob
+        xhr.send(textBlob);
       });
+    } catch (error) {
+      console.error("Text file upload error:", error);
+      return {
+        success: false,
+        error: (error as Error).message,
+      };
+    }
+  };
+
+  /**
+   * Upload form data and signature as a text file to Dropbox
+   * @param data The form data to upload
+   * @param signature The signature data URI
+   * @param folderPath The folder to upload to
+   * @returns Promise with upload response
+   */
+  const uploadFormDataAsTextFile = async (
+    data: Record<string, any>,
+    signature: string,
+    folderPath: string
+  ): Promise<UploadResponse> => {
+    try {
+      // Create formatted text content
+      let textContent = "=== SUBMISSION FORM DATA ===\n\n";
+      
+      // Add form fields
+      Object.entries(data).forEach(([key, value]) => {
+        if (key !== 'signature' && key !== 'video') {
+          textContent += `${key}: ${value}\n`;
+        }
+      });
+      
+      textContent += "\n=== SIGNATURE PROVIDED: YES ===\n";
+      textContent += `Submission Date: ${new Date().toLocaleString()}\n`;
+      
+      // Save signature image separately
+      if (signature) {
+        const signatureResponse = await uploadSignatureImage(signature, folderPath);
+        textContent += `Signature Image: ${signatureResponse.path || "Failed to upload"}\n`;
+      }
+      
+      // Create filename for text file
+      const fileName = `submission_details.txt`;
+      
+      // Upload the text content
+      return await uploadTextFile(textContent, fileName, folderPath);
     } catch (error) {
       console.error("Form data upload error:", error);
       toast({
@@ -142,6 +235,35 @@ export const useDropboxService = () => {
         description: `Failed to save form data to Dropbox: ${(error as Error).message}`,
         variant: "destructive",
       });
+      return {
+        success: false,
+        error: (error as Error).message,
+      };
+    }
+  };
+
+  /**
+   * Upload the signature as an image to Dropbox
+   * @param signatureDataUrl The signature data URL
+   * @param folderPath The folder to upload to
+   * @returns Promise with upload response
+   */
+  const uploadSignatureImage = async (
+    signatureDataUrl: string,
+    folderPath: string
+  ): Promise<UploadResponse> => {
+    try {
+      // Convert data URL to blob
+      const response = await fetch(signatureDataUrl);
+      const blob = await response.blob();
+      
+      // Create a File from the blob
+      const signatureFile = new File([blob], "signature.png", { type: "image/png" });
+      
+      // Upload the signature file
+      return await uploadFile(signatureFile, folderPath);
+    } catch (error) {
+      console.error("Signature upload error:", error);
       return {
         success: false,
         error: (error as Error).message,
@@ -304,7 +426,8 @@ export const useDropboxService = () => {
 
   return {
     uploadFile,
-    uploadFormDataAsJson,
+    uploadFormDataAsTextFile,
     createSharedLink,
+    createSubmissionFolder
   };
 };

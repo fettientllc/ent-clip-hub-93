@@ -18,7 +18,7 @@ export const useSubmitForm = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { uploadFormDataAsJson } = useDropboxService();
+  const { uploadFile, uploadFormDataAsTextFile, createSubmissionFolder } = useDropboxService();
 
   const form = useForm<SubmitFormValues>({
     resolver: zodResolver(formSchema),
@@ -65,7 +65,16 @@ export const useSubmitForm = () => {
       setSubmitting(true);
       setUploadError(null);
       
-      // Create a JSON representation of the form data
+      // 1. Create a unique folder for this submission
+      const folderPath = await createSubmissionFolder(data.firstName, data.lastName);
+      
+      if (!folderPath) {
+        throw new Error("Failed to create submission folder");
+      }
+      
+      console.log(`Created submission folder: ${folderPath}`);
+      
+      // 2. Upload the form data as a text file to the submission folder
       const formDataObject = {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -75,19 +84,19 @@ export const useSubmitForm = () => {
         agreeTerms: data.agreeTerms,
         noOtherSubmission: data.noOtherSubmission,
         keepInTouch: data.keepInTouch || false,
-        signatureProvided: !!data.signature,
         videoFileName: data.video.name,
         dropboxFileId: data.dropboxFileId,
         dropboxFilePath: data.dropboxFilePath,
         submittedAt: new Date().toISOString(),
       };
       
-      console.log("Submitting form data to Dropbox...");
+      console.log("Uploading form data as text file...");
       
-      // Upload the form data as a JSON file to Dropbox
-      const result = await uploadFormDataAsJson(
+      // Upload the form data with the signature
+      const result = await uploadFormDataAsTextFile(
         formDataObject, 
-        `${data.firstName}_${data.lastName}_submission.json`
+        data.signature,
+        folderPath
       );
       
       if (result.success) {
