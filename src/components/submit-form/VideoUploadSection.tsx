@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
@@ -37,7 +36,7 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
   const videoFile = form.watch('video') as File | undefined;
   const cloudinaryFileId = form.watch('cloudinaryFileId');
   const cloudinaryUrl = form.watch('cloudinaryUrl');
-  const uploadComplete = !!cloudinaryFileId && !!cloudinaryUrl;
+  const uploadComplete = !!cloudinaryFileId && !!cloudinaryUrl && cloudinaryFileId !== "";
 
   // Create object URL for video preview when file changes
   useEffect(() => {
@@ -80,9 +79,9 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
   const clearVideo = () => {
     setVideoFileName(null);
     form.setValue('video', undefined as any, { shouldValidate: true });
-    form.setValue('cloudinaryFileId', undefined, { shouldValidate: true });
-    form.setValue('cloudinaryUrl', undefined, { shouldValidate: true });
-    form.setValue('cloudinaryPublicId', undefined, { shouldValidate: true });
+    form.setValue('cloudinaryFileId', "", { shouldValidate: true });
+    form.setValue('cloudinaryUrl', "", { shouldValidate: true });
+    form.setValue('cloudinaryPublicId', "", { shouldValidate: true });
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (videoPreviewUrl) {
       URL.revokeObjectURL(videoPreviewUrl);
@@ -132,9 +131,9 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
   const retryUpload = () => {
     if (videoFile instanceof File) {
       // Reset error state
-      form.setValue('cloudinaryFileId', undefined, { shouldValidate: true });
-      form.setValue('cloudinaryUrl', undefined, { shouldValidate: true });
-      form.setValue('cloudinaryPublicId', undefined, { shouldValidate: true });
+      form.setValue('cloudinaryFileId', "", { shouldValidate: true });
+      form.setValue('cloudinaryUrl', "", { shouldValidate: true });
+      form.setValue('cloudinaryPublicId', "", { shouldValidate: true });
       form.setValue('video', undefined as any, { shouldValidate: false });
       
       toast({
