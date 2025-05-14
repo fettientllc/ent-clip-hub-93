@@ -27,10 +27,16 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
       });
       
       if (result.success && result.fileId && result.url) {
+        console.log("Setting Cloudinary values in form:", {
+          fileId: result.fileId,
+          url: result.url,
+          publicId: result.publicId
+        });
+        
         // Store the Cloudinary file ID and URL
-        form.setValue('cloudinaryFileId', result.fileId);
-        form.setValue('cloudinaryUrl', result.url);
-        form.setValue('cloudinaryPublicId', result.publicId);
+        form.setValue('cloudinaryFileId', result.fileId, { shouldValidate: true });
+        form.setValue('cloudinaryUrl', result.url, { shouldValidate: true });
+        form.setValue('cloudinaryPublicId', result.publicId, { shouldValidate: true });
         
         // Create a submission folder name (just for reference, not actually used in Cloudinary)
         const firstName = form.getValues('firstName');
@@ -38,7 +44,7 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
         
         if (firstName && lastName) {
           const folderPath = `/uploads/${firstName}_${lastName}_${Date.now()}`;
-          form.setValue('submissionFolder', folderPath);
+          form.setValue('submissionFolder', folderPath, { shouldValidate: true });
         }
         
         toast({
@@ -47,6 +53,10 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
         });
       } else {
         console.error("Upload failed:", result.error);
+        form.setError("video", {
+          type: "manual",
+          message: "Video upload failed. Please try again.",
+        });
         toast({
           title: "Upload failed",
           description: result.error || "Failed to upload video.",
@@ -55,6 +65,10 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
       }
     } catch (error) {
       console.error("Upload error:", error);
+      form.setError("video", {
+        type: "manual",
+        message: "Video upload error. Please try again.",
+      });
       toast({
         title: "Upload error",
         description: "An unexpected error occurred while uploading your video.",
@@ -68,7 +82,7 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
   // Effect to automatically upload when video file changes
   useEffect(() => {
     const videoFile = form.watch('video') as File | undefined;
-    if (videoFile instanceof File && !form.watch('cloudinaryFileId')) {
+    if (videoFile instanceof File && !form.getValues('cloudinaryFileId')) {
       uploadToCloudinary(videoFile);
     }
   }, [form.watch('video')]);
@@ -141,8 +155,13 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
 
     console.log(`Selected video: ${file.name} (${Math.round(file.size / 1024 / 1024)} MB)`);
     
-    // Clear any previous errors
+    // Clear any previous errors and Cloudinary data
     form.clearErrors("video");
+    form.setValue('cloudinaryFileId', undefined, { shouldValidate: false });
+    form.setValue('cloudinaryUrl', undefined, { shouldValidate: false });
+    form.setValue('cloudinaryPublicId', undefined, { shouldValidate: false });
+    
+    // Set the video file
     form.setValue('video', file, { shouldValidate: true });
     setVideoFileName(file.name);
   };

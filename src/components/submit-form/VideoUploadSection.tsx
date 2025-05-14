@@ -3,7 +3,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
-import { Video, Upload, Info, Wifi, FileWarning } from 'lucide-react';
+import { Video, Upload, Info, Wifi, FileWarning, CheckCircle } from 'lucide-react';
 import { SubmitFormValues } from '@/hooks/useSubmitForm';
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -54,25 +54,35 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
     }
   }, [videoFile]);
 
-  // Update upload state based on props
+  // Update upload state based on props and form values
   useEffect(() => {
+    console.log("Cloudinary status:", { 
+      isUploading, 
+      cloudinaryFileId, 
+      cloudinaryUrl, 
+      uploadComplete 
+    });
+    
     if (isUploading) {
       setUploadState('uploading');
     } else if (uploadComplete) {
       setUploadState('complete');
     } else if (form.formState.errors.video) {
       setUploadState('error');
+    } else if (videoFile instanceof File && !isUploading && !uploadComplete) {
+      // If we have a file but no upload is in progress and it's not complete, we have an error
+      setUploadState('error');
     } else {
       setUploadState('idle');
     }
-  }, [isUploading, uploadComplete, form.formState.errors.video]);
+  }, [isUploading, uploadComplete, form.formState.errors.video, videoFile, cloudinaryFileId, cloudinaryUrl]);
 
   const clearVideo = () => {
     setVideoFileName(null);
     form.setValue('video', undefined as any, { shouldValidate: true });
-    form.setValue('cloudinaryFileId', undefined);
-    form.setValue('cloudinaryUrl', undefined);
-    form.setValue('cloudinaryPublicId', undefined);
+    form.setValue('cloudinaryFileId', undefined, { shouldValidate: true });
+    form.setValue('cloudinaryUrl', undefined, { shouldValidate: true });
+    form.setValue('cloudinaryPublicId', undefined, { shouldValidate: true });
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (videoPreviewUrl) {
       URL.revokeObjectURL(videoPreviewUrl);
@@ -122,9 +132,10 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
   const retryUpload = () => {
     if (videoFile instanceof File) {
       // Reset error state
-      form.setValue('cloudinaryFileId', undefined);
-      form.setValue('cloudinaryUrl', undefined);
-      form.setValue('video', undefined as any);
+      form.setValue('cloudinaryFileId', undefined, { shouldValidate: true });
+      form.setValue('cloudinaryUrl', undefined, { shouldValidate: true });
+      form.setValue('cloudinaryPublicId', undefined, { shouldValidate: true });
+      form.setValue('video', undefined as any, { shouldValidate: false });
       
       toast({
         title: "Retrying upload",
@@ -180,7 +191,7 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                       <Alert className="bg-red-50 border-red-200 text-red-800">
                         <FileWarning className="h-4 w-4 text-red-600" />
                         <AlertDescription className="text-sm">
-                          Upload failed. This may be due to network issues or file size.
+                          Upload failed or incomplete. Please try again.
                           <Button 
                             type="button" 
                             variant="outline" 
@@ -196,8 +207,9 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                   )}
                   
                   {uploadComplete && (
-                    <div className="w-full mt-2 text-center text-sm text-green-600 font-medium">
-                      Upload complete! ✓
+                    <div className="w-full mt-2 flex items-center justify-center gap-1 text-sm text-green-600 font-medium">
+                      <CheckCircle className="h-4 w-4" />
+                      <span>Upload complete! Video ready for submission.</span>
                     </div>
                   )}
                   
