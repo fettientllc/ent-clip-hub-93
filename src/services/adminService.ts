@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -13,8 +14,8 @@ export interface SubmissionData {
   description?: string;
   videoUrl?: string;
   videoPath?: string;
-  dropboxVideoPath?: string;  // Added missing property
-  supabaseVideoPath?: string;  // Added missing property
+  dropboxVideoPath?: string;
+  supabaseVideoPath?: string;
   submittedAt: string;
   status: 'pending' | 'approved' | 'rejected';
   adminNotes?: string;
@@ -24,6 +25,23 @@ export interface SubmissionData {
   creditPlatform?: string;
   creditUsername?: string;
   paypalEmail?: string;
+  // Add folderPath to match usage in useSubmitForm
+  folderPath?: string;
+  // Add cloudinaryPublicId to match usage in useSubmitForm
+  cloudinaryPublicId?: string;
+  signatureProvided?: boolean;
+}
+
+// Define DashboardStats interface
+export interface DashboardStats {
+  totalSubmissions: number;
+  pendingSubmissions: number;
+  approvedSubmissions: number;
+  rejectedSubmissions: number;
+  dailySubmissions: number;
+  weeklySubmissions: number;
+  monthlySubmissions: number;
+  totalUsers: number;
 }
 
 // Define the type for the return value of the hook
@@ -35,13 +53,101 @@ interface UseAdminService {
   addSubmissionNote: (id: string, note: string) => boolean;
   downloadVideo: (id: string) => Promise<void>;
   getVideoUrl: (videoPath: string) => Promise<string | null>;
+  // Add missing getDashboardStats function
+  getDashboardStats: () => DashboardStats;
 }
+
+// Function to add a new submission to the database
+export const addSubmission = async (submissionData: Partial<SubmissionData>): Promise<string> => {
+  try {
+    // Generate a unique ID for the submission
+    const id = uuidv4();
+    
+    // Create a new submission object with default values
+    const newSubmission = {
+      id,
+      firstName: submissionData.firstName || '',
+      lastName: submissionData.lastName || '',
+      email: submissionData.email || '',
+      location: submissionData.location || '',
+      description: submissionData.description || '',
+      videoUrl: submissionData.videoUrl || '',
+      videoPath: submissionData.videoPath || '',
+      dropboxVideoPath: submissionData.dropboxVideoPath || '',
+      supabaseVideoPath: submissionData.supabaseVideoPath || '',
+      submittedAt: submissionData.submittedAt || new Date().toISOString(),
+      status: submissionData.status || 'pending',
+      adminNotes: submissionData.adminNotes || '',
+      isOwnRecording: submissionData.isOwnRecording !== undefined ? submissionData.isOwnRecording : true,
+      recorderName: submissionData.recorderName || '',
+      wantCredit: submissionData.wantCredit !== undefined ? submissionData.wantCredit : false,
+      creditPlatform: submissionData.creditPlatform || '',
+      creditUsername: submissionData.creditUsername || '',
+      paypalEmail: submissionData.paypalEmail || '',
+      folderPath: submissionData.folderPath || '',
+      cloudinaryPublicId: submissionData.cloudinaryPublicId || '',
+      signatureProvided: submissionData.signatureProvided || false
+    };
+    
+    // Here you'd typically add the submission to your Supabase database
+    // For now, we'll just return the ID as if it was successfully added
+    console.log("Added new submission:", newSubmission);
+    
+    return id;
+  } catch (error) {
+    console.error("Error adding submission:", error);
+    throw error;
+  }
+};
 
 // Custom hook for admin service
 export const useAdminService = (): UseAdminService => {
   const supabaseClient = useSupabaseClient();
   const [submissions, setSubmissions] = useState<SubmissionData[]>([]);
   const { toast } = useToast();
+  
+  // Function to get dashboard statistics
+  const getDashboardStats = (): DashboardStats => {
+    // Calculate the current date and date ranges
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    // Calculate statistics from the submissions array
+    const totalSubmissions = submissions.length;
+    
+    const pendingSubmissions = submissions.filter(sub => sub.status === 'pending').length;
+    const approvedSubmissions = submissions.filter(sub => sub.status === 'approved').length;
+    const rejectedSubmissions = submissions.filter(sub => sub.status === 'rejected').length;
+    
+    const dailySubmissions = submissions.filter(sub => 
+      new Date(sub.submittedAt) >= oneDayAgo
+    ).length;
+    
+    const weeklySubmissions = submissions.filter(sub => 
+      new Date(sub.submittedAt) >= oneWeekAgo
+    ).length;
+    
+    const monthlySubmissions = submissions.filter(sub => 
+      new Date(sub.submittedAt) >= oneMonthAgo
+    ).length;
+    
+    // For now, we'll just use a placeholder for totalUsers
+    // In a real application, you'd query a users table
+    const totalUsers = 5; // Placeholder
+    
+    return {
+      totalSubmissions,
+      pendingSubmissions,
+      approvedSubmissions,
+      rejectedSubmissions,
+      dailySubmissions,
+      weeklySubmissions,
+      monthlySubmissions,
+      totalUsers
+    };
+  };
   
   // Function to fetch submissions from Supabase
   const fetchSubmissions = async () => {
@@ -352,6 +458,8 @@ export const useAdminService = (): UseAdminService => {
     deleteSubmission,
     addSubmissionNote,
     downloadVideo,
-    getVideoUrl
+    getVideoUrl,
+    getDashboardStats
   };
 };
+

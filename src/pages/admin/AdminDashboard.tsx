@@ -25,6 +25,7 @@ const AdminDashboard: React.FC = () => {
     totalUsers: 0
   });
   const [recentSubmissions, setRecentSubmissions] = useState<SubmissionData[]>([]);
+  const [videoUrls, setVideoUrls] = useState<Record<string, string>>({});
   
   // Use effect to fetch the latest data when the component mounts
   useEffect(() => {
@@ -48,6 +49,23 @@ const AdminDashboard: React.FC = () => {
       .slice(0, 3);
       
     setRecentSubmissions(latest);
+    
+    // Fetch video URLs for each submission
+    latest.forEach(async (submission) => {
+      if (submission.id) {
+        try {
+          const url = await getVideoUrl(submission.id);
+          if (url) {
+            setVideoUrls(prev => ({
+              ...prev,
+              [submission.id]: url
+            }));
+          }
+        } catch (error) {
+          console.error(`Error getting video URL for submission ${submission.id}:`, error);
+        }
+      }
+    });
   };
 
   // Format date for display
@@ -195,7 +213,7 @@ const AdminDashboard: React.FC = () => {
                     <div key={submission.id} className="border rounded-lg overflow-hidden shadow-sm">
                       <AspectRatio ratio={16/9}>
                         <video 
-                          src={getVideoUrl(submission.id)}
+                          src={videoUrls[submission.id] || "/placeholder.svg"} 
                           controls 
                           className="w-full h-full object-cover"
                           poster="/placeholder.svg"

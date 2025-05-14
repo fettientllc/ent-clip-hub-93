@@ -229,7 +229,7 @@ export function useSubmitForm() {
       
       // Add the submission to the admin service
       try {
-        const submissionId = addSubmission({
+        const submissionId = await addSubmission({
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
