@@ -1,4 +1,5 @@
 
+import { useState, useMemo, useCallback } from "react";
 import { SubmissionData } from "./adminService";
 
 export const dateFilters: Record<string, { label: string, filter: (date: Date) => boolean }> = {
@@ -108,4 +109,137 @@ export const filterSubmissions = (
     
     return true;
   });
+};
+
+// Add the useFilterService hook that was missing
+export const useFilterService = (allSubmissions: SubmissionData[]) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [filterOptions, setFilterOptions] = useState({
+    ownRecording: false,
+    wantCredit: false,
+    missingPaypal: false,
+    pending: true,
+    approved: true,
+    rejected: true
+  });
+
+  // Filter submissions based on search term and other filters
+  const filteredSubmissions = useMemo(() => {
+    // Convert date range to string filter
+    let dateRangeFilter = 'all';
+    if (dateRange.from && dateRange.to) {
+      // Custom date range logic
+      const customDateFilter = (date: Date) => {
+        const submissionDate = new Date(date);
+        return submissionDate >= dateRange.from! && submissionDate <= dateRange.to!;
+      };
+      
+      // We'll use our custom filter instead of predefined ones
+      dateRangeFilter = 'custom';
+    } else if (dateRange.from && !dateRange.to) {
+      // Single date selection
+      dateRangeFilter = 'custom';
+    }
+
+    // Apply status filters
+    const statusFilters = [];
+    if (filterOptions.pending) statusFilters.push('pending');
+    if (filterOptions.approved) statusFilters.push('approved');
+    if (filterOptions.rejected) statusFilters.push('rejected');
+
+    let filteredByStatus = allSubmissions;
+    if (statusFilters.length > 0 && statusFilters.length < 3) {
+      filteredByStatus = allSubmissions.filter(sub => statusFilters.includes(sub.status));
+    }
+
+    // Apply other filters using the existing filterSubmissions function
+    return filterSubmissions(
+      filteredByStatus,
+      searchTerm,
+      {
+        dateRange: dateRangeFilter,
+        ownRecording: filterOptions.ownRecording ? true : null,
+        wantCredit: filterOptions.wantCredit ? true : null,
+        hasPaypalEmail: filterOptions.missingPaypal ? false : null,
+        status: 'all' // We already filtered by status above
+      }
+    );
+  }, [allSubmissions, searchTerm, dateRange, filterOptions]);
+
+  // Export CSV function
+  const exportToCSV = useCallback(() => {
+    if (filteredSubmissions.length === 0) return;
+    
+    const headers = [
+      'First Name', 'Last Name', 'Email', 'Location', 'Submitted At', 
+      'Status', 'Is Own Recording', 'Want Credit', 'Has PayPal'
+    ].join(',');
+    
+    const rows = filteredSubmissions.map(sub => [
+      `"${sub.firstName}"`,
+      `"${sub.lastName}"`,
+      `"${sub.email}"`,
+      `"${sub.location || ''}"`,
+      `"${sub.submittedAt}"`,
+      `"${sub.status}"`,
+      sub.isOwnRecording ? 'Yes' : 'No',
+      sub.wantCredit ? 'Yes' : 'No',
+      sub.paypalEmail ? 'Yes' : 'No'
+    ].join(','));
+    
+    const csvContent = [headers, ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `submissions-export-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [filteredSubmissions]);
+  
+  // Export JSON function
+  const exportToJSON = useCallback(() => {
+    if (filteredSubmissions.length === 0) return;
+    
+    const data = JSON.stringify(filteredSubmissions, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `submissions-export-${new Date().toISOString().split('T')[0]}.json`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [filteredSubmissions]);
+  
+  // Reset filters
+  const resetFilters = () => {
+    setSearchTerm('');
+    setDateRange({});
+    setFilterOptions({
+      ownRecording: false,
+      wantCredit: false,
+      missingPaypal: false,
+      pending: true,
+      approved: true,
+      rejected: true
+    });
+  };
+  
+  return {
+    searchTerm,
+    setSearchTerm,
+    dateRange,
+    setDateRange,
+    filterOptions,
+    setFilterOptions,
+    filteredSubmissions,
+    resetFilters,
+    exportToCSV,
+    exportToJSON
+  };
 };

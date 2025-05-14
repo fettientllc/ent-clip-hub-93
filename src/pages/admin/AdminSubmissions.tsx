@@ -353,7 +353,7 @@ const AdminSubmissions: React.FC = () => {
   };
 
   return (
-    <AdminLayout>
+    <AdminLayout title="Video Submissions">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Video Submissions</h1>
         
