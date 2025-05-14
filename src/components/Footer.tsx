@@ -22,7 +22,7 @@ const Footer: React.FC = () => {
           <a href="https://www.Instagram.com/itsfettient" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-blue-600 transition-colors font-bold">
             INSTAGRAM
           </a>
-          <a href="https://www.tiktok.com/@fetti.ent" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-blue-600 transition-colors font-bold">
+          <a href="https://www.tiktok.com/@itsfettient" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-blue-600 transition-colors font-bold">
             TIKTOK
           </a>
         </nav>
