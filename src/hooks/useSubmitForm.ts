@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -47,7 +48,7 @@ export const useSubmitForm = () => {
     mode: "onChange",
   });
   
-  const { videoFileName, setVideoFileName, handleVideoChange } = useVideoHandler(form);
+  const { videoFileName, setVideoFileName, handleVideoChange, isUploading, uploadProgress } = useVideoHandler(form);
   const { buildFormData } = useFormDataBuilder();
 
   const onSubmit = async (data: SubmitFormValues) => {
@@ -174,6 +175,8 @@ export const useSubmitForm = () => {
     handleVideoChange,
     handleSignatureChange,
     uploadError,
-    retryUpload
+    retryUpload,
+    isUploading,
+    uploadProgress
   };
 };

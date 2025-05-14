@@ -18,6 +18,7 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
     if (!file) return;
     
     setIsUploading(true);
+    setUploadProgress(0);
     
     try {
       // Create a submission folder for this upload
@@ -44,11 +45,25 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
       if (result.success && result.fileId && result.path) {
         form.setValue('dropboxFileId', result.fileId);
         form.setValue('dropboxFilePath', result.path);
+        toast({
+          title: "Upload complete",
+          description: "Your video was successfully uploaded.",
+        });
       } else {
         console.error("Upload failed:", result.error);
+        toast({
+          title: "Upload failed",
+          description: result.error || "Failed to upload video.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Upload error:", error);
+      toast({
+        title: "Upload error",
+        description: "An unexpected error occurred while uploading your video.",
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
     }

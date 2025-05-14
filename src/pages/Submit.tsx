@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,6 @@ import VideoUploadSection from '@/components/submit-form/VideoUploadSection';
 import LegalSection from '@/components/submit-form/LegalSection';
 import SignatureSection from '@/components/submit-form/SignatureSection';
 import AdditionalInfoSection from '@/components/submit-form/AdditionalInfoSection';
-import GuidelinesSection from '@/components/submit-form/GuidelinesSection';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader, RefreshCw } from "lucide-react";
 
@@ -22,7 +22,9 @@ const Submit: React.FC = () => {
     handleVideoChange, 
     handleSignatureChange,
     uploadError,
-    retryUpload
+    retryUpload,
+    isUploading,
+    uploadProgress
   } = useSubmitForm();
   
   const [showErrors, setShowErrors] = useState(false);
@@ -67,6 +69,8 @@ const Submit: React.FC = () => {
             setVideoFileName={setVideoFileName}
             handleVideoChange={handleVideoChange}
             showError={showErrors && hasVideoError}
+            isUploading={isUploading}
+            uploadProgress={uploadProgress}
           />
           
           {videoFileName && videoFileSize && !videoUploaded && (
@@ -108,8 +112,6 @@ const Submit: React.FC = () => {
               </AlertDescription>
             </Alert>
           )}
-          
-          <GuidelinesSection />
           
           <AdditionalInfoSection form={form} />
           
