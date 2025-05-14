@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
@@ -60,8 +59,6 @@ const Submit: React.FC = () => {
     <SubmitFormLayout>
       <Form {...form}>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <GuidelinesSection />
-          
           <PersonalInfoSection form={form} />
           
           <VideoUploadSection 
@@ -111,6 +108,8 @@ const Submit: React.FC = () => {
               </AlertDescription>
             </Alert>
           )}
+          
+          <GuidelinesSection />
           
           <AdditionalInfoSection form={form} />
           
