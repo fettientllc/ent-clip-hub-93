@@ -13,6 +13,7 @@ export const formSchema = z.object({
   noOtherSubmission: z.boolean().refine(value => value, { message: "You must confirm this is your own work" }),
   keepInTouch: z.boolean().optional(),
   isOwnRecording: z.boolean().default(true),
+  recorderName: z.string().optional(),
   wantCredit: z.boolean().optional().default(false),
   creditPlatform: z.string().optional(),
   creditUsername: z.string().optional(),
