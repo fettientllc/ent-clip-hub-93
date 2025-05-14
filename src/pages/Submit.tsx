@@ -10,7 +10,7 @@ import LegalSection from '@/components/submit-form/LegalSection';
 import SignatureSection from '@/components/submit-form/SignatureSection';
 import AdditionalInfoSection from '@/components/submit-form/AdditionalInfoSection';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader, RefreshCw } from "lucide-react";
+import { AlertCircle, Loader, RefreshCw, CheckCircle } from "lucide-react";
 
 const Submit: React.FC = () => {
   const { 
@@ -45,8 +45,9 @@ const Submit: React.FC = () => {
   const hasOtherErrors = Object.keys(form.formState.errors).some(key => key !== 'video');
   
   const videoFile = form.watch('video') as File | undefined;
-  const dropboxFileId = form.watch('dropboxFileId');
-  const videoUploaded = !!dropboxFileId;
+  const cloudinaryFileId = form.watch('cloudinaryFileId');
+  const cloudinaryUrl = form.watch('cloudinaryUrl');
+  const videoUploaded = !!cloudinaryFileId && !!cloudinaryUrl;
   
   const formatFileSize = (size: number): string => {
     if (size < 1024) return `${size} B`;
@@ -82,6 +83,15 @@ const Submit: React.FC = () => {
                 </span>
               )}
             </div>
+          )}
+          
+          {videoUploaded && (
+            <Alert className="bg-green-50 border-green-200 text-green-800">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="font-bold">
+                Video uploaded successfully
+              </AlertDescription>
+            </Alert>
           )}
           
           {showErrors && hasVideoError && (
@@ -124,13 +134,18 @@ const Submit: React.FC = () => {
           
           <Button 
             type="submit" 
-            disabled={submitting}
+            disabled={submitting || isUploading || (!videoFile && !videoUploaded)}
             className="w-full bg-[#6C63FF] hover:bg-[#5952cc] text-white font-bold py-4 text-lg uppercase mt-6"
           >
             {submitting ? (
               <div className="flex items-center gap-2">
                 <Loader className="h-5 w-5 animate-spin" />
                 <span>Submitting Form...</span>
+              </div>
+            ) : isUploading ? (
+              <div className="flex items-center gap-2">
+                <Loader className="h-5 w-5 animate-spin" />
+                <span>Uploading Video ({uploadProgress}%)...</span>
               </div>
             ) : "SUBMIT"}
           </Button>

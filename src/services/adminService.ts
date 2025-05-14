@@ -1,4 +1,3 @@
-
 import { useDropboxService } from "./dropboxService";
 import { useToast } from "@/hooks/use-toast";
 import { useMailingListService } from "./mailingListService";
@@ -128,6 +127,8 @@ export const useAdminService = () => {
   const cloudinaryService = useCloudinaryService();
 
   const getSubmissions = (): SubmissionData[] => {
+    // Return a fresh copy of the submissions array to ensure
+    // components get the latest data
     return [...submissions];
   };
 
@@ -397,7 +398,7 @@ export const useAdminService = () => {
     }
   };
 
-  // Get the video URL for display
+  // Get the video URL for display - improved to handle Cloudinary URLs better
   const getVideoUrl = (id: string): string => {
     const submission = submissions.find(s => s.id === id);
     

@@ -91,6 +91,12 @@ export function useSubmitForm() {
       const cloudinaryUrl = form.getValues('cloudinaryUrl');
       const cloudinaryPublicId = form.getValues('cloudinaryPublicId');
       
+      console.log("Cloudinary data in submission:", {
+        fileId: cloudinaryFileId,
+        url: cloudinaryUrl,
+        publicId: cloudinaryPublicId
+      });
+      
       // Check if video was uploaded successfully to Cloudinary
       if (!cloudinaryFileId || !cloudinaryUrl) {
         setUploadError("Video upload incomplete. Please try again.");
@@ -125,7 +131,7 @@ export function useSubmitForm() {
       console.log("Added submission with ID:", submissionId);
       
       // Simulate API submission delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       console.log("Submission successful!");
       toast({

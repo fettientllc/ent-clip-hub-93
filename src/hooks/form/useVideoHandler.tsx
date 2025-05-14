@@ -27,26 +27,30 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
       });
       
       if (result.success && result.fileId && result.url) {
-        console.log('Cloudinary upload successful:', result.fileId);
+        console.log('Cloudinary upload successful:', result);
         
         // Store the Cloudinary values as plain strings - ensure they are strings
         const fileId = String(result.fileId);
         const url = String(result.url);
         const publicId = result.publicId ? String(result.publicId) : '';
         
+        console.log("Setting Cloudinary form values:", {
+          fileId,
+          url,
+          publicId
+        });
+        
         form.setValue('cloudinaryFileId', fileId, { shouldValidate: true });
         form.setValue('cloudinaryUrl', url, { shouldValidate: true });
         form.setValue('cloudinaryPublicId', publicId, { shouldValidate: true });
         
-        // Verify the values were set correctly
-        setTimeout(() => {
-          const currentValues = form.getValues();
-          console.log("Current form Cloudinary values:", {
-            fileId: currentValues.cloudinaryFileId,
-            url: currentValues.cloudinaryUrl,
-            publicId: currentValues.cloudinaryPublicId
-          });
-        }, 100);
+        // Log the values immediately after setting them
+        const currentValues = form.getValues();
+        console.log("Current form Cloudinary values after setting:", {
+          fileId: currentValues.cloudinaryFileId,
+          url: currentValues.cloudinaryUrl,
+          publicId: currentValues.cloudinaryPublicId
+        });
         
         // Create a submission folder name
         const firstName = form.getValues('firstName');
