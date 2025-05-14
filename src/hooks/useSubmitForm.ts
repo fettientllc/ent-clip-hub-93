@@ -1,10 +1,9 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { useVideoHandler } from "./form/useVideoHandler";
 import { useFormDataBuilder } from "./form/useFormDataBuilder";
 import { formSchema } from "./form/formSchema";
@@ -23,7 +22,7 @@ export function useSubmitForm() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const { completeSubmission } = useIntegratedStorageService();
+  const integratedStorage = useIntegratedStorageService();
   
   const form = useForm<SubmitFormValues>({
     resolver: zodResolver(formSchema),
@@ -149,7 +148,7 @@ export function useSubmitForm() {
       });
       
       // Complete the submission to both Supabase and Dropbox
-      const result = await completeSubmission(
+      const result = await integratedStorage.completeSubmission(
         data,
         signatureData,
         videoFile as File,

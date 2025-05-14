@@ -1,7 +1,7 @@
 
 import { useDropboxService } from './dropboxService';
-import { useSupabaseService, type SubmissionRecord, supabase } from './supabaseService';
-import { useToast } from "@/hooks/use-toast";
+import { useSupabaseService } from './supabaseService';
+import { useToast } from "@/components/ui/use-toast";
 import { fileUtilsService } from './fileUtilsService';
 import { useSubmissionWorkflowService } from './submissionWorkflowService';
 
@@ -214,12 +214,36 @@ export const useIntegratedStorageService = () => {
     }
   };
 
+  /**
+   * Complete a submission process - modified to prevent circular dependency
+   */
+  const completeSubmission = async (
+    formData: Record<string, any>,
+    signature: string,
+    videoFile: File,
+    onProgress?: (progress: number) => void
+  ): Promise<{ id: string | null; success: boolean }> => {
+    // We pass "this" (the current integratedStorageService) to workflowService
+    return await workflowService.completeSubmission(
+      formData, 
+      signature, 
+      videoFile, 
+      { 
+        uploadVideo, 
+        uploadSignature, 
+        uploadFormData,
+        createFolders
+      },
+      onProgress
+    );
+  };
+
   return {
     createFolders,
     uploadVideo,
     uploadSignature,
     uploadFormData,
-    completeSubmission: workflowService.completeSubmission,
+    completeSubmission,
     moveToApprovedFolder: workflowService.moveToApprovedFolder
   };
 };
