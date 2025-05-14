@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -7,29 +8,7 @@ import { useToast } from "./use-toast";
 import { useVideoHandler } from "./form/useVideoHandler";
 import { useFormDataBuilder } from "./form/useFormDataBuilder";
 import { useSimulatedUploadService } from '@/services/simulatedUploadService';
-
-// Form schema
-const formSchema = z.object({
-  firstName: z.string().min(2, { message: "First name is required" }),
-  lastName: z.string().min(2, { message: "Last name is required" }),
-  email: z.string().email({ message: "Valid email is required" }),
-  location: z.string().min(2, { message: "Location is required" }),
-  description: z.string().optional(),
-  video: z.any().refine((val) => val instanceof File || val === undefined, {
-    message: "Video is required",
-  }),
-  agreeTerms: z.boolean().refine((val) => val === true, {
-    message: "You must agree to the terms",
-  }),
-  noOtherSubmission: z.boolean().refine((val) => val === true, {
-    message: "You must confirm this is your only submission",
-  }),
-  keepInTouch: z.boolean().optional(),
-  signature: z.string().min(1, { message: "Signature is required" }),
-  dropboxFileId: z.string().optional(),
-  dropboxFilePath: z.string().optional(),
-  submissionFolder: z.string().optional(),
-});
+import { formSchema } from "./form/formSchema";
 
 export type SubmitFormValues = z.infer<typeof formSchema>;
 
@@ -47,9 +26,12 @@ export function useSubmitForm() {
       email: "",
       location: "",
       description: "",
+      hasDescription: false,
       agreeTerms: false,
       noOtherSubmission: false,
       keepInTouch: false,
+      isOwnRecording: true,
+      wantCredit: false,
       signature: "",
     },
   });
