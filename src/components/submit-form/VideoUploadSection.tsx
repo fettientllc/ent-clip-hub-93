@@ -5,7 +5,6 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/comp
 import { Button } from '@/components/ui/button';
 import { Video, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
 import { SubmitFormValues } from '@/hooks/useSubmitForm';
-import { useDropboxUploader } from '@/hooks/form/useDropboxUploader';
 import { Progress } from "@/components/ui/progress";
 
 interface VideoUploadSectionProps {
@@ -25,34 +24,11 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadComplete, setUploadComplete] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const videoFile = form.watch('video') as File | undefined;
   const dropboxFileId = form.watch('dropboxFileId');
   const dropboxFilePath = form.watch('dropboxFilePath');
-
-  // Setup Dropbox uploader
-  const { 
-    uploadProgress, 
-    timeoutWarning, 
-    uploadSpeed, 
-    networkStatus,
-    executeUpload 
-  } = useDropboxUploader({
-    onSuccess: (fileId, filePath) => {
-      form.setValue('dropboxFileId', fileId);
-      form.setValue('dropboxFilePath', filePath);
-      setIsUploading(false);
-      setUploadComplete(true);
-      setUploadError(null);
-    },
-    onError: (errorMessage) => {
-      setIsUploading(false);
-      setUploadError(errorMessage);
-    }
-  });
+  const uploadComplete = !!dropboxFileId;
 
   // Create object URL for video preview when file changes
   useEffect(() => {
@@ -79,26 +55,9 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
       URL.revokeObjectURL(videoPreviewUrl);
       setVideoPreviewUrl(null);
     }
-    setUploadComplete(false);
   };
 
-  const startUpload = () => {
-    if (videoFile && !isUploading && !uploadComplete) {
-      setIsUploading(true);
-      setUploadError(null);
-      executeUpload(videoFile);
-    }
-  };
-
-  const retryUpload = () => {
-    if (videoFile) {
-      setIsUploading(true);
-      setUploadError(null);
-      executeUpload(videoFile);
-    }
-  };
-
-  const hasError = (showError && !!form.formState.errors.video) || !!uploadError;
+  const hasError = (showError && !!form.formState.errors.video);
 
   return (
     <FormField
@@ -111,19 +70,12 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
             <div className={`bg-gray-100 p-6 rounded border ${hasError ? 'border-red-500' : 'border-gray-300'} flex flex-col items-center justify-center ${!videoFileName ? 'h-[180px]' : ''}`}>
               {videoFileName ? (
                 <div className="flex flex-col items-center gap-3 w-full">
-                  {uploadComplete ? (
-                    <div className="flex items-center gap-2 text-green-600">
-                      <CheckCircle2 className="h-6 w-6" />
-                      <span className="font-medium">Uploaded to Dropbox!</span>
-                    </div>
-                  ) : (
-                    <Video className="h-12 w-12 text-blue-600" />
-                  )}
+                  <Video className="h-12 w-12 text-blue-600" />
                   
                   <span className="text-sm text-gray-700 text-center font-medium">{videoFileName}</span>
                   
                   {/* Video preview */}
-                  {videoPreviewUrl && !isUploading && (
+                  {videoPreviewUrl && (
                     <div className="w-full mt-3">
                       <video 
                         controls 
@@ -133,78 +85,15 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                     </div>
                   )}
                   
-                  {/* Upload progress */}
-                  {isUploading && (
-                    <div className="w-full mt-3 space-y-2">
-                      <div className="flex justify-between text-xs text-gray-600">
-                        <span>Uploading to Dropbox...</span>
-                        <span>{uploadProgress}%</span>
-                      </div>
-                      <Progress value={uploadProgress} />
-                      {uploadSpeed && (
-                        <p className="text-xs text-gray-500 text-center">{uploadSpeed}</p>
-                      )}
-                      {timeoutWarning && (
-                        <div className="flex items-center gap-2 text-amber-600 text-xs mt-2">
-                          <AlertCircle className="h-4 w-4" />
-                          <span>Upload is taking longer than expected. Please wait...</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Upload error */}
-                  {uploadError && (
-                    <div className="w-full mt-3">
-                      <div className="bg-red-50 border border-red-200 rounded p-3 text-red-800 text-sm">
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4" />
-                          <span className="font-medium">Upload failed</span>
-                        </div>
-                        <p className="mt-1">{uploadError}</p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={retryUpload}
-                          className="mt-2"
-                          disabled={networkStatus === 'offline'}
-                        >
-                          Retry Upload
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Upload to Dropbox button (only show if not uploaded yet and not currently uploading) */}
-                  {!uploadComplete && !isUploading && !uploadError && (
-                    <Button 
-                      type="button" 
-                      variant="default"
-                      onClick={startUpload}
-                      className="mt-2 bg-blue-600 hover:bg-blue-700"
-                      disabled={networkStatus === 'offline'}
-                    >
-                      Upload to Dropbox
-                    </Button>
-                  )}
-                  
                   <Button 
                     type="button" 
                     variant="outline" 
                     size="sm"
                     onClick={clearVideo}
                     className="mt-2"
-                    disabled={isUploading}
                   >
                     Remove Video
                   </Button>
-                  
-                  {uploadComplete && (
-                    <div className="text-xs text-green-600 mt-1">
-                      Your video is safely stored in Dropbox. Continue filling out the form.
-                    </div>
-                  )}
                 </div>
               ) : (
                 <label htmlFor="video-upload" className="cursor-pointer flex flex-col items-center gap-3 w-full h-full justify-center">
@@ -212,7 +101,6 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                   <span className={`font-medium ${hasError ? 'text-red-500' : 'text-blue-600'}`}>
                     {hasError ? 'Please upload a video file' : 'Click to upload video'}
                   </span>
-                  <span className="text-xs text-gray-500">(Recommended: under 5MB for reliable uploads)</span>
                   <input 
                     id="video-upload"
                     ref={fileInputRef}

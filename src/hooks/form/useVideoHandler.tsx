@@ -1,13 +1,50 @@
 
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import type { SubmitFormValues } from "../useSubmitForm";
+import { useDropboxService } from '@/services/dropboxService';
 
 export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
+  const { uploadFile } = useDropboxService();
+
+  // Function to handle video upload to Dropbox
+  const uploadToDropbox = async (file: File) => {
+    if (!file) return;
+    
+    setIsUploading(true);
+    
+    try {
+      // Upload file to Dropbox
+      const result = await uploadFile(file, "/uploads", (progress) => {
+        setUploadProgress(progress);
+      });
+      
+      if (result.success && result.fileId && result.path) {
+        form.setValue('dropboxFileId', result.fileId);
+        form.setValue('dropboxFilePath', result.path);
+      } else {
+        console.error("Upload failed:", result.error);
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Effect to automatically upload when video file changes
+  useEffect(() => {
+    const videoFile = form.watch('video') as File | undefined;
+    if (videoFile instanceof File && !form.watch('dropboxFileId')) {
+      uploadToDropbox(videoFile);
+    }
+  }, [form.watch('video')]);
 
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -74,14 +111,6 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
         duration: 10000,
       });
     }
-    // Show warning for medium files
-    else if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Server limitation warning",
-        description: "Files over 5MB may take longer to process due to server limitations. The upload will work, but please wait patiently for processing to complete.",
-        duration: 8000,
-      });
-    }
 
     console.log(`Selected video: ${file.name} (${Math.round(file.size / 1024 / 1024)} MB)`);
     
@@ -94,6 +123,8 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
   return {
     videoFileName,
     setVideoFileName,
-    handleVideoChange
+    handleVideoChange,
+    isUploading,
+    uploadProgress
   };
 }

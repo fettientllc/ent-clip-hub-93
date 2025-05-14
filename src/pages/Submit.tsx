@@ -9,7 +9,7 @@ import VideoUploadSection from '@/components/submit-form/VideoUploadSection';
 import LegalSection from '@/components/submit-form/LegalSection';
 import SignatureSection from '@/components/submit-form/SignatureSection';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader, AlertTriangle, WifiOff, RefreshCw, Info, FolderTree } from "lucide-react";
+import { AlertCircle, Loader, AlertTriangle, WifiOff, RefreshCw } from "lucide-react";
 
 const Submit: React.FC = () => {
   const { 
@@ -54,34 +54,8 @@ const Submit: React.FC = () => {
   const videoFileSize = videoFile instanceof File ? formatFileSize(videoFile.size) : null;
   const isLargeFile = videoFile instanceof File && videoFile.size > 100 * 1024 * 1024;
 
-  const renderFileSizeWarning = () => {
-    if (isLargeFile) {
-      return (
-        <Alert className="bg-blue-50 border-blue-200 text-blue-800 mt-4">
-          <Info className="h-4 w-4 text-blue-600" />
-          <AlertDescription>
-            <span className="font-medium">This is a large file.</span> For more reliable uploads:
-            <ul className="list-disc list-inside mt-1 text-sm">
-              <li>Use a stable WiFi or wired connection</li>
-              <li>Keep the browser tab open during upload</li>
-              <li>Consider compressing your video before uploading</li>
-            </ul>
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    return null;
-  };
-
   return (
     <SubmitFormLayout>
-      <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-6">
-        <FolderTree className="h-4 w-4 text-blue-600" />
-        <AlertDescription>
-          <span className="font-medium">Submission Organization:</span> Each submission (your video, form, and signature) will be stored in its own folder in our Dropbox.
-        </AlertDescription>
-      </Alert>
-      
       <Form {...form}>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PersonalInfoSection form={form} />
@@ -105,31 +79,11 @@ const Submit: React.FC = () => {
             </div>
           )}
           
-          {renderFileSizeWarning()}
-          
           {showErrors && hasVideoError && (
             <Alert className="bg-red-50 border-red-200 text-red-800">
               <AlertCircle className="h-4 w-4 text-red-600" />
               <AlertDescription className="font-bold">
                 Please upload a valid video file before submitting
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          {showErrors && !videoUploaded && videoFileName && (
-            <Alert className="bg-amber-50 border-amber-200 text-amber-800">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="font-bold">
-                Please upload your video to Dropbox before submitting the form
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          {showErrors && hasOtherErrors && (
-            <Alert className="bg-red-50 border-red-200 text-red-800">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <AlertDescription>
-                Please fix the errors above before submitting
               </AlertDescription>
             </Alert>
           )}
@@ -163,7 +117,7 @@ const Submit: React.FC = () => {
           
           <Button 
             type="submit" 
-            disabled={submitting || !videoUploaded}
+            disabled={submitting}
             className="w-full bg-[#6C63FF] hover:bg-[#5952cc] text-white font-bold py-4 text-lg uppercase mt-6"
           >
             {submitting ? (
@@ -174,17 +128,11 @@ const Submit: React.FC = () => {
             ) : "SUBMIT"}
           </Button>
           
-          {!videoUploaded && videoFileName && (
-            <div className="text-center text-sm text-amber-600">
-              You must upload your video to Dropbox before submitting the form
-            </div>
-          )}
-          
           {submitting && (
             <div className="mt-4">
               <div className="flex flex-col space-y-2">
                 <p className="text-sm text-center text-gray-600">
-                  Creating your submission folder and saving all files... Please don't close this page.
+                  Please don't close this page.
                 </p>
               </div>
             </div>
