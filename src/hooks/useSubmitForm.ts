@@ -86,8 +86,13 @@ export function useSubmitForm() {
       
       console.log("Form submitted with data:", data);
       
+      // Get the Cloudinary values directly from the form
+      const cloudinaryFileId = form.getValues('cloudinaryFileId');
+      const cloudinaryUrl = form.getValues('cloudinaryUrl');
+      const cloudinaryPublicId = form.getValues('cloudinaryPublicId');
+      
       // Check if video was uploaded successfully to Cloudinary
-      if (!data.cloudinaryFileId || !data.cloudinaryUrl) {
+      if (!cloudinaryFileId || !cloudinaryUrl) {
         setUploadError("Video upload incomplete. Please try again.");
         setSubmitting(false);
         return;
@@ -104,8 +109,8 @@ export function useSubmitForm() {
         location: data.location,
         description: data.hasDescription ? data.description : undefined,
         folderPath: data.submissionFolder || `/uploads/${data.firstName}_${data.lastName}_${Date.now()}`,
-        videoUrl: data.cloudinaryUrl,
-        cloudinaryPublicId: data.cloudinaryPublicId,
+        videoUrl: cloudinaryUrl, // Use the value from form directly
+        cloudinaryPublicId: cloudinaryPublicId, // Use the value from form directly
         signatureProvided: !!data.signature,
         submittedAt: submittedAt,
         status: 'pending',
