@@ -1,3 +1,4 @@
+
 import { useToast } from "@/hooks/use-toast";
 
 // Dropbox API credentials - these will be replaced with env variables
@@ -523,6 +524,7 @@ export const useDropboxService = () => {
     uploadFormDataAsTextFile,
     createSharedLink,
     createSubmissionFolder,
-    createFolder
+    createFolder,
+    uploadSignatureImage
   };
 };

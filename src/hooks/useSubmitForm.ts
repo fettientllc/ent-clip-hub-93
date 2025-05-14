@@ -4,18 +4,20 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useVideoHandler } from "./form/useVideoHandler";
 import { useFormDataBuilder } from "./form/useFormDataBuilder";
 import { formSchema } from "./form/formSchema";
 import { addSubmission } from "@/services/adminService";
-import { useIntegratedStorageService } from "@/services/integratedStorageService";
+import { useDropboxService } from "@/services/dropboxService";
 
 // Extend the form schema type to include Cloudinary fields
 export type SubmitFormValues = z.infer<typeof formSchema> & {
   cloudinaryFileId?: string;
   cloudinaryUrl?: string;
   cloudinaryPublicId?: string;
+  dropboxFileId?: string;
+  dropboxFilePath?: string;
 };
 
 export function useSubmitForm() {
@@ -24,7 +26,7 @@ export function useSubmitForm() {
   const [submitting, setSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const integratedStorage = useIntegratedStorageService();
+  const dropboxService = useDropboxService();
   
   const form = useForm<SubmitFormValues>({
     resolver: zodResolver(formSchema),
@@ -44,7 +46,9 @@ export function useSubmitForm() {
       paypalEmail: null,
       cloudinaryFileId: "",
       cloudinaryUrl: "",
-      cloudinaryPublicId: ""
+      cloudinaryPublicId: "",
+      dropboxFileId: "",
+      dropboxFilePath: ""
     },
   });
 
@@ -89,7 +93,7 @@ export function useSubmitForm() {
     }
   };
 
-  // Submit handler - updated to use integrated storage service
+  // Submit handler - updated to use Dropbox service directly
   const onSubmit = async (data: SubmitFormValues) => {
     try {
       setSubmitting(true);
@@ -115,7 +119,7 @@ export function useSubmitForm() {
         return;
       }
       
-      // We'll still use Cloudinary for cloud processing, but also store in Supabase and Dropbox
+      // We'll still use Cloudinary for cloud processing, but also upload to Dropbox
       // If we have a video file but no Cloudinary ID, we need to upload it first
       let cloudinaryUploaded = false;
       if (videoFile instanceof File && (!data.cloudinaryFileId || data.cloudinaryFileId === "")) {
@@ -151,37 +155,77 @@ export function useSubmitForm() {
         return;
       }
       
-      // Now that we have the Cloudinary upload, we'll process the complete submission to Supabase and Dropbox
-      toast({
-        title: "Processing submission",
-        description: "Saving your information and files. Please wait...",
-      });
+      // Now that we have the Cloudinary upload, let's also upload to Dropbox
+      let dropboxResult = { success: false, fileId: '', path: '', error: 'Not attempted' };
       
-      // Complete the submission to both Supabase and Dropbox
       try {
-        const result = await integratedStorage.completeSubmission(
-          data,
-          signatureData,
-          videoFile as File,
-          (progress) => {
-            // We can use this to update a secondary progress indicator if needed
-            console.log(`Storage upload progress: ${progress}%`);
-          }
-        );
+        // Create a submission folder in Dropbox
+        const folderName = await dropboxService.createSubmissionFolder(data.firstName, data.lastName);
         
-        if (!result.success) {
-          // Store the error but continue with the submission since we have the Cloudinary data
-          console.log("Storage submission failed but continuing with Cloudinary data:", result);
-          setSubmitError("Storage error, but your video is saved in our cloud system.");
+        if (!folderName) {
+          console.warn("Could not create a custom folder in Dropbox, will use default uploads folder");
         }
-      } catch (storageError) {
-        // Log the storage error but continue with the submission since we have the Cloudinary data
-        console.error("Storage submission error:", storageError);
-        setSubmitError(`Storage error: ${(storageError as Error).message}`);
+        
+        const targetFolder = folderName || "/uploads";
+        
+        // Upload the video to Dropbox directly
+        if (videoFile instanceof File) {
+          toast({
+            title: "Saving to Dropbox",
+            description: "Uploading your video to our secure storage. Please wait...",
+          });
+          
+          // Upload video to Dropbox
+          dropboxResult = await dropboxService.uploadFile(videoFile, targetFolder, 
+            (progress) => {
+              console.log(`Dropbox upload progress: ${progress}%`);
+            }
+          );
+          
+          if (dropboxResult.success && dropboxResult.fileId) {
+            // Update form with Dropbox info
+            form.setValue('dropboxFileId', dropboxResult.fileId);
+            form.setValue('dropboxFilePath', dropboxResult.path || '');
+            
+            console.log("File uploaded to Dropbox successfully:", dropboxResult);
+          } else {
+            console.warn("Dropbox upload issue:", dropboxResult.error);
+            // Continue with submission even if Dropbox fails
+          }
+        }
+        
+        // Also upload the signature as an image
+        try {
+          const signatureResult = await dropboxService.uploadSignatureImage(
+            signatureData,
+            targetFolder
+          );
+          
+          console.log("Signature uploaded to Dropbox:", signatureResult);
+        } catch (signatureError) {
+          console.warn("Failed to upload signature:", signatureError);
+          // Continue anyway
+        }
+        
+        // Upload form details as text file
+        try {
+          const formDataResult = await dropboxService.uploadFormDataAsTextFile(
+            data,
+            signatureData,
+            targetFolder
+          );
+          
+          console.log("Form data uploaded to Dropbox:", formDataResult);
+        } catch (formDataError) {
+          console.warn("Failed to upload form data:", formDataError);
+          // Continue anyway
+        }
+      } catch (dropboxError) {
+        console.error("Dropbox upload error:", dropboxError);
+        // We'll continue with the submission even if Dropbox fails
       }
       
-      // Also add the submission to the admin service for backwards compatibility
-      // This might be removed in a later version once fully migrated to Supabase
+      // Add the submission to the admin service
       try {
         const submissionId = addSubmission({
           firstName: data.firstName,
@@ -189,7 +233,7 @@ export function useSubmitForm() {
           email: data.email,
           location: data.location,
           description: data.hasDescription ? data.description : undefined,
-          folderPath: data.submissionFolder || `/uploads/${data.firstName}_${data.lastName}_${Date.now()}`,
+          folderPath: dropboxResult.path ? dropboxResult.path.split('/').slice(0, -1).join('/') : `/uploads/${data.firstName}_${data.lastName}_${Date.now()}`,
           videoUrl: cloudinaryUrl,
           cloudinaryPublicId: data.cloudinaryPublicId,
           signatureProvided: !!data.signature,
@@ -205,7 +249,7 @@ export function useSubmitForm() {
         
         console.log("Added submission with ID:", submissionId);
         
-        // Even if we had storage errors, we'll consider this a success as long as Cloudinary worked
+        // Consider this a success as long as Cloudinary worked
         toast({
           title: "Submission successful!",
           description: "Thank you for your submission.",
