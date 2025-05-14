@@ -10,12 +10,16 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [autoUpload, setAutoUpload] = useState(false); // Flag to control auto upload behavior
   const { toast } = useToast();
   const { uploadVideo, checkCloudinaryConfig } = useCloudinaryService();
 
   // Function to handle video upload to Cloudinary
   const uploadToCloudinary = async (file: File) => {
     if (!file) return;
+    
+    // If already uploading, prevent duplicate uploads
+    if (isUploading) return;
     
     setIsUploading(true);
     setUploadProgress(0);
@@ -71,6 +75,8 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
           title: "Upload complete",
           description: "Your video was successfully uploaded.",
         });
+
+        return true;
       } else {
         console.error("Upload failed:", result.error);
         form.setError("video", {
@@ -88,6 +94,8 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
           description: result.error || "Failed to upload video.",
           variant: "destructive",
         });
+
+        return false;
       }
     } catch (error) {
       console.error("Upload error:", error);
@@ -106,18 +114,20 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
         description: "An unexpected error occurred while uploading your video.",
         variant: "destructive",
       });
+
+      return false;
     } finally {
       setIsUploading(false);
     }
   };
 
-  // Effect to automatically upload when video file changes
+  // Effect to automatically upload when video file changes - only if autoUpload is enabled
   useEffect(() => {
     const videoFile = form.watch('video') as File | undefined;
-    if (videoFile instanceof File && !form.getValues('cloudinaryFileId')) {
+    if (autoUpload && videoFile instanceof File && !form.getValues('cloudinaryFileId')) {
       uploadToCloudinary(videoFile);
     }
-  }, [form.watch('video')]);
+  }, [form.watch('video'), autoUpload]);
 
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -184,13 +194,39 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
     setVideoFileName(file.name);
   };
 
+  // Toggle auto-upload behavior
+  const setEnableAutoUpload = (enabled: boolean) => {
+    setAutoUpload(enabled);
+  };
+
+  // Ensure video is uploaded before submission
+  const ensureVideoUploaded = async (): Promise<boolean> => {
+    const videoFile = form.watch('video') as File | undefined;
+    const cloudinaryFileId = form.getValues('cloudinaryFileId');
+    
+    // If we already have a Cloudinary ID, the video is uploaded
+    if (cloudinaryFileId) {
+      return true;
+    }
+    
+    // If we have a video file but no Cloudinary ID, upload it now
+    if (videoFile instanceof File) {
+      return await uploadToCloudinary(videoFile);
+    }
+    
+    // No video file selected
+    return false;
+  };
+
   return {
     videoFileName,
     setVideoFileName,
     handleVideoChange,
     isUploading,
     uploadProgress,
-    uploadToCloudinary, // Expose this so we can call it from onSubmit if needed
-    verifyCloudinaryConfig: checkCloudinaryConfig
+    uploadToCloudinary,
+    verifyCloudinaryConfig: checkCloudinaryConfig,
+    setEnableAutoUpload,
+    ensureVideoUploaded
   };
 }

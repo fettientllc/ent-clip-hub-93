@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { useSubmitForm } from '@/hooks/useSubmitForm';
@@ -11,6 +11,7 @@ import SignatureSection from '@/components/submit-form/SignatureSection';
 import AdditionalInfoSection from '@/components/submit-form/AdditionalInfoSection';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader, RefreshCw, CheckCircle, Info } from "lucide-react";
+import { useDropboxService } from '@/services/dropboxService';
 
 const Submit: React.FC = () => {
   const { 
@@ -30,6 +31,23 @@ const Submit: React.FC = () => {
   
   const [showErrors, setShowErrors] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [dropboxStatus, setDropboxStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
+  const dropboxService = useDropboxService();
+
+  // Check Dropbox connectivity on component mount
+  useEffect(() => {
+    const checkDropbox = async () => {
+      try {
+        const isConnected = await dropboxService.testDropboxConnection();
+        setDropboxStatus(isConnected ? 'connected' : 'disconnected');
+      } catch (error) {
+        console.error("Failed to check Dropbox connection:", error);
+        setDropboxStatus('disconnected');
+      }
+    };
+    
+    checkDropbox();
+  }, []);
 
   React.useEffect(() => {
     if (uploadError) {
@@ -168,12 +186,18 @@ const Submit: React.FC = () => {
             handleSignatureChange={handleSignatureChange}
           />
           
-          {/* New info alert for testing environment */}
-          <Alert className="bg-blue-50 border-blue-200 text-blue-800">
-            <Info className="h-4 w-4 text-blue-600" />
+          {/* System status information */}
+          <Alert className={`${dropboxStatus === 'connected' ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+            <Info className={`h-4 w-4 ${dropboxStatus === 'connected' ? 'text-blue-600' : 'text-amber-600'}`} />
             <AlertDescription className="text-sm">
-              <span className="font-bold">Test Environment Notice:</span> This form is fully functional to accept video submissions via Cloudinary, but integration with Supabase storage requires environment configuration. 
-              Your submission data will still be processed properly.
+              <span className="font-bold">System Status:</span>{' '}
+              {dropboxStatus === 'checking' ? (
+                "Checking storage system connectivity..."
+              ) : dropboxStatus === 'connected' ? (
+                "All systems operational. Your submission will be fully processed."
+              ) : (
+                "Storage system connection limited. Your video will be uploaded to Cloudinary but may not be stored in our backup system. This won't affect your submission."
+              )}
             </AlertDescription>
           </Alert>
           

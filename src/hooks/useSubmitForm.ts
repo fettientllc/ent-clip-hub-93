@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -17,6 +18,7 @@ export type SubmitFormValues = z.infer<typeof formSchema> & {
   cloudinaryPublicId?: string;
   dropboxFileId?: string;
   dropboxFilePath?: string;
+  submissionFolder?: string;
 };
 
 export function useSubmitForm() {
@@ -47,7 +49,8 @@ export function useSubmitForm() {
       cloudinaryUrl: "",
       cloudinaryPublicId: "",
       dropboxFileId: "",
-      dropboxFilePath: ""
+      dropboxFilePath: "",
+      submissionFolder: ""
     },
   });
 
@@ -60,8 +63,12 @@ export function useSubmitForm() {
     handleVideoChange,
     isUploading,
     uploadProgress,
-    uploadToCloudinary
+    setEnableAutoUpload,
+    ensureVideoUploaded
   } = useVideoHandler(form);
+
+  // Disable auto-upload on file selection - we'll upload on form submission
+  setEnableAutoUpload(false);
 
   // Handle signature change
   const handleSignatureChange = (signatureData: string) => {
@@ -92,7 +99,7 @@ export function useSubmitForm() {
     }
   };
 
-  // Submit handler - updated to use Dropbox service directly
+  // Submit handler - updated to ensure video is uploaded first and fix Dropbox integration
   const onSubmit = async (data: SubmitFormValues) => {
     try {
       setSubmitting(true);
@@ -118,10 +125,10 @@ export function useSubmitForm() {
         return;
       }
       
-      // We'll still use Cloudinary for cloud processing, but also upload to Dropbox
-      // If we have a video file but no Cloudinary ID, we need to upload it first
+      // Make sure video is uploaded to Cloudinary before proceeding
       let cloudinaryUploaded = false;
-      if (videoFile instanceof File && (!data.cloudinaryFileId || data.cloudinaryFileId === "")) {
+      
+      if (!data.cloudinaryFileId || data.cloudinaryFileId === "") {
         console.log("Video not yet uploaded to Cloudinary. Uploading now...");
         
         toast({
@@ -129,13 +136,10 @@ export function useSubmitForm() {
           description: "Your video is being uploaded to Cloudinary. Please wait...",
         });
         
-        // Wait for the video to upload to Cloudinary
-        await uploadToCloudinary(videoFile);
+        // Upload the video to Cloudinary
+        const uploadSuccess = await ensureVideoUploaded();
         
-        // Check if upload succeeded
-        const updatedCloudinaryFileId = form.getValues('cloudinaryFileId');
-        
-        if (!updatedCloudinaryFileId || updatedCloudinaryFileId === "") {
+        if (!uploadSuccess) {
           setUploadError("Video upload to Cloudinary failed. Please try again.");
           setSubmitting(false);
           return;
@@ -154,7 +158,7 @@ export function useSubmitForm() {
         return;
       }
       
-      // Now that we have the Cloudinary upload, let's also upload to Dropbox
+      // Now that we have Cloudinary details, also upload to Dropbox
       let dropboxResult: UploadResponse = { 
         success: false, 
         fileId: '', 
@@ -163,37 +167,82 @@ export function useSubmitForm() {
       };
       
       try {
-        // Create a submission folder in Dropbox
-        const folderName = await dropboxService.createSubmissionFolder(data.firstName, data.lastName);
+        // Create a submission folder in Dropbox with better error handling
+        toast({
+          title: "Creating storage folders",
+          description: "Setting up secure storage for your submission...",
+        });
         
-        if (!folderName) {
-          console.warn("Could not create a custom folder in Dropbox, will use default uploads folder");
+        let folderName: string | null = null;
+        
+        try {
+          folderName = await dropboxService.createSubmissionFolder(data.firstName, data.lastName);
+          
+          if (folderName) {
+            console.log("Created Dropbox folder:", folderName);
+            // Store the folder path
+            form.setValue('submissionFolder', folderName);
+            
+            // Set a more informative toast message
+            toast({
+              title: "Folders created",
+              description: "Secure storage is ready for your submission.",
+            });
+          } else {
+            console.warn("Could not create a custom folder in Dropbox, will use default uploads folder");
+            // Create a fallback folder path
+            form.setValue('submissionFolder', `/uploads/${data.firstName}_${data.lastName}_${Date.now()}`);
+          }
+        } catch (folderError) {
+          console.error("Failed to create Dropbox folder:", folderError);
+          // Create a fallback folder path
+          form.setValue('submissionFolder', `/uploads/${data.firstName}_${data.lastName}_${Date.now()}`);
         }
         
         const targetFolder = folderName || "/uploads";
         
-        // Upload the video to Dropbox directly
+        // Upload the video to Dropbox directly if we have the file
         if (videoFile instanceof File) {
           toast({
             title: "Saving to Dropbox",
             description: "Uploading your video to our secure storage. Please wait...",
           });
           
-          // Upload video to Dropbox
-          dropboxResult = await dropboxService.uploadFile(
-            videoFile,
-            targetFolder, 
-            (progress) => {
-              console.log(`Dropbox upload progress: ${progress}%`);
+          // Upload video to Dropbox with better error handling
+          try {
+            dropboxResult = await dropboxService.uploadFile(
+              videoFile,
+              targetFolder, 
+              (progress) => {
+                console.log(`Dropbox upload progress: ${progress}%`);
+              }
+            );
+            
+            if (dropboxResult.success && dropboxResult.fileId) {
+              console.log("File uploaded to Dropbox successfully:", dropboxResult);
+              
+              // Store Dropbox file info
+              form.setValue('dropboxFileId', dropboxResult.fileId);
+              form.setValue('dropboxFilePath', dropboxResult.path);
+              
+              toast({
+                title: "Video saved to storage",
+                description: "Your video has been securely stored.",
+              });
+            } else {
+              console.warn("Dropbox upload issue:", dropboxResult.error);
+              // Continue with submission even if Dropbox fails
+              toast({
+                title: "Storage notice",
+                description: "Your video was processed successfully but couldn't be saved to our storage system. This won't affect your submission.",
+              });
             }
-          );
-          
-          if (dropboxResult.success && dropboxResult.fileId) {
-            console.log("File uploaded to Dropbox successfully:", dropboxResult);
-          } else {
-            console.warn("Dropbox upload issue:", dropboxResult.error);
-            // Continue with submission even if Dropbox fails
+          } catch (videoUploadError) {
+            console.error("Dropbox video upload error:", videoUploadError);
+            // Log but continue
           }
+        } else {
+          console.log("No video file available for Dropbox upload, but we have Cloudinary URL:", cloudinaryUrl);
         }
         
         // Also upload the signature as an image
@@ -223,19 +272,25 @@ export function useSubmitForm() {
           // Continue anyway
         }
       } catch (dropboxError) {
-        console.error("Dropbox upload error:", dropboxError);
+        console.error("Dropbox integration error:", dropboxError);
         // We'll continue with the submission even if Dropbox fails
+        toast({
+          title: "Storage system notice",
+          description: "Your submission will be processed, but we encountered issues with our storage system. This won't affect your submission.",
+        });
       }
       
       // Add the submission to the admin service
       try {
-        const submissionId = await addSubmission({
+        const submissionData = {
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
           location: data.location,
           description: data.hasDescription ? data.description : undefined,
-          folderPath: dropboxResult.path ? dropboxResult.path.split('/').slice(0, -1).join('/') : `/uploads/${data.firstName}_${data.lastName}_${Date.now()}`,
+          folderPath: form.getValues('submissionFolder') || dropboxResult.path ? 
+            dropboxResult.path.split('/').slice(0, -1).join('/') : 
+            `/uploads/${data.firstName}_${data.lastName}_${Date.now()}`,
           videoUrl: cloudinaryUrl,
           cloudinaryPublicId: data.cloudinaryPublicId,
           signatureProvided: !!data.signature,
@@ -247,7 +302,13 @@ export function useSubmitForm() {
           creditPlatform: data.wantCredit ? data.creditPlatform : undefined,
           creditUsername: data.wantCredit ? data.creditUsername : undefined,
           paypalEmail: data.paypalEmail || undefined,
-        });
+          // Add these for better tracking
+          cloudinaryFileId: finalCloudinaryFileId,
+          dropboxFileId: dropboxResult.fileId || '',
+          dropboxFilePath: dropboxResult.path || ''
+        };
+        
+        const submissionId = await addSubmission(submissionData);
         
         console.log("Added submission with ID:", submissionId);
         

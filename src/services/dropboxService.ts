@@ -1,3 +1,4 @@
+
 import { useToast } from "@/hooks/use-toast";
 
 // Dropbox API credentials - these will be replaced with env variables
@@ -48,7 +49,12 @@ const getAccessToken = async (): Promise<string> => {
   const clientSecret = import.meta.env.VITE_DROPBOX_CLIENT_SECRET || "qxdg9tnwroye6xg";
   
   // Using the refresh token
-  const refreshToken = import.meta.env.VITE_DROPBOX_REFRESH_TOKEN || "sl.u.AFsaq5x0NLsTB4-e0OjxvZq2n-gxAJpWA33lqnfJZQjNpXKXkHeVuCv4zC5-rJgO8-dVzaaYy1NQme-7XpyhwMGd7ZP_xfRDqjFvPbhGB7ObNv_fgzk6ASFtkysLxHwoZN7Nl14BdQnDoAmcwAzieg04hHjjJKapPluwxZTrgukJi9TEPDcvqgyx-cZtwPkkCK1pzSYHwSZnm6l6eglYTMWjd-dpB-yGOVRmdxEG20ENwDanA0QV93pXaks8HnXlIoMFN7S36-lvIOipTR5eTRZEYl6cjm2tUUDItgswWATnqqFaojXMu92W6cWJ09wZQXe5Y_UHIkZMBMeMFecpsoEaN3muFleQGBCzJmz4g2SGrwazdSVV_Q_ZnwLTZBn-gX2r0BIk_f8MlVBJtpBVnRu9lOImc-Hm-vXz3k6_gOQcxn4BExFCTzCiWAyRUsaDiL-9h25jJPl0Mj5m_dc_D7k0fvWjVkMTi3TuMzF2HpIMiR4TSzxceGghY4EpyHcDeLaoNwPkbE2w9X5PrOT1RXNKDFQBHzqw57azwg1pGNx4_xe99Fx8CuM66bwkHt1SIXNAgo0yxAl-L9Bcq7A8OgBj6tNHdcWbtz-xGUl9ASIIcBRfy_aJTY9Fu5lZ1ggzlNVpxzJ7gJ3ACg-kzWq9J8sk00K8OfC5KU906H5bq58PqgFC7nsgfvKxnfAghTE2SixhTT9jdZxkfiRXz2IMguZcMFFTpSGByWNRKJPVDq0Q4etj4qPSjrwlAYqKJ9hFJEVEkmVnuLlxQRMy88ZzwLwESpqAJ2cXcFhawUzQjVZVmNtPGeg06dmla0kivV3IczFN0FXftdVPHe7bwjFLLRQeMRsrdCPOPnLkhtyQiE9UHk8Av8Gg7sMt9DSHw2_VKiICDGeUe4zvWUnjfUMEi5MTiXQQRQLY0n5x5hOnItKyiqakNwmuEmQCjNIVyVpAf0A8Y--p9l_AgWhxNbXTja_jaMdThpx8csG70Sm1GaCvURYIHuXh39UYmm4K-KgaUZyHflC_KmqqlNyDKm_0b-aiy2Daso7TxfiWP6r-Pj3KiWdZb58Yu3Q4G5RX_JC4n3prJjpwOZzlYAfVyyQGrMGJhpvflngKOhZ36wYz2Cso3y6sg1J7j_LzQAdCApUPNi0kDyrGF6j9qHBdCTVTxwPDlAveWbZs-JctnMDYBdm0Z14HGkCM0aO9LBfwGRNRCxhUhtrsWI-FHhU57dYW-GCNNOOB5-AMWHArtSdnMyXiWSYoKBwPIJ-fJn4ZcfZ9k0q2HzLmtNwP3ijg-H-qA0nwSneiOk600JQdXZ28227m88sgSSbHMnS_4YUIANNJL9OeYOGL_w4FJNd7iTz00gUhSzrg5Zc9iA7LXdA1EMywpXQyKBG3Q1tdbdJ--prjFV3JcS88HCKizNR1muGvjIes";
+  const refreshToken = import.meta.env.VITE_DROPBOX_REFRESH_TOKEN || "";
+  
+  if (!refreshToken) {
+    console.error("No Dropbox refresh token found in environment variables");
+    throw new Error("Dropbox refresh token is missing");
+  }
   
   try {
     // If this were a real server environment, we'd make this request server-side
@@ -86,13 +92,60 @@ const getAccessToken = async (): Promise<string> => {
     
     return data.access_token;
   } catch (error) {
-    console.error("Error refreshing token:", error);
-    throw new Error(`Failed to get access token: ${(error as Error).message}`);
+    console.error("Error refreshing Dropbox token:", error);
+    throw new Error(`Failed to get Dropbox access token: ${(error as Error).message}`);
   }
 };
 
 export const useDropboxService = () => {
   const { toast } = useToast();
+
+  /**
+   * Tests if Dropbox integration is configured and working
+   */
+  const testDropboxConnection = async (): Promise<boolean> => {
+    try {
+      // Check if we have a refresh token
+      const refreshToken = import.meta.env.VITE_DROPBOX_REFRESH_TOKEN;
+      if (!refreshToken) {
+        console.error("Missing Dropbox refresh token");
+        return false;
+      }
+      
+      // Try to get an access token
+      const token = await getAccessToken();
+      if (!token) {
+        console.error("Failed to get Dropbox access token");
+        return false;
+      }
+      
+      // Try to list files in the root folder as a connectivity test
+      const response = await fetch(`${DROPBOX_API_AUTH_URL}/files/list_folder`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          path: "",
+          recursive: false,
+          limit: 1
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Dropbox connectivity test failed:", response.status, errorText);
+        return false;
+      }
+      
+      console.log("Dropbox connection test successful");
+      return true;
+    } catch (error) {
+      console.error("Dropbox connection test error:", error);
+      return false;
+    }
+  };
 
   /**
    * Create a folder in Dropbox
@@ -116,9 +169,12 @@ export const useDropboxService = () => {
       });
       
       if (response.ok) {
+        const data = await response.json();
+        console.log("Folder created successfully:", data);
         return true;
       } else {
-        console.error("Failed to create folder:", await response.text());
+        const errorText = await response.text();
+        console.error("Failed to create folder:", response.status, errorText);
         return false;
       }
     } catch (error) {
@@ -131,15 +187,34 @@ export const useDropboxService = () => {
    * Create a submission folder with timestamp and user information
    */
   const createSubmissionFolder = async (firstName: string, lastName: string): Promise<string | null> => {
-    // Create a unique folder name with timestamp and user info
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const folderName = `/submissions/${timestamp}_${firstName}_${lastName}`;
+    try {
+      // Test connection first
+      const isConnected = await testDropboxConnection();
+      if (!isConnected) {
+        console.error("Dropbox connection test failed");
+        toast({
+          title: "Dropbox Connection Issue",
+          description: "Could not connect to Dropbox storage. Your submission will still be processed.",
+          variant: "warning",
+        });
+        return null;
+      }
     
-    const success = await createFolder(folderName);
-    if (success) {
-      return folderName;
+      // Create a unique folder name with timestamp and user info
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const folderName = `/submissions/${timestamp}_${firstName}_${lastName}`;
+      
+      const success = await createFolder(folderName);
+      if (success) {
+        return folderName;
+      }
+      
+      console.error("Failed to create Dropbox folder");
+      return null;
+    } catch (error) {
+      console.error("Error in createSubmissionFolder:", error);
+      return null;
     }
-    return null;
   };
 
   /**
@@ -155,6 +230,17 @@ export const useDropboxService = () => {
     onProgress?: UploadProgressCallback
   ): Promise<UploadResponse> => {
     try {
+      // Test connection first
+      const isConnected = await testDropboxConnection();
+      if (!isConnected) {
+        return {
+          success: false,
+          fileId: '',
+          path: '',
+          error: "Dropbox connection failed. Check your API configuration."
+        };
+      }
+      
       // File path in Dropbox
       const path = `${folderPath}/${file.name}`;
       
@@ -558,10 +644,12 @@ export const useDropboxService = () => {
 
   return {
     uploadFile,
+    uploadTextFile,
     uploadFormDataAsTextFile,
     createSharedLink,
     createSubmissionFolder,
     createFolder,
-    uploadSignatureImage
+    uploadSignatureImage,
+    testDropboxConnection
   };
 };

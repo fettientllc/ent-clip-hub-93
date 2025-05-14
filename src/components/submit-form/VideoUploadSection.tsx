@@ -74,8 +74,9 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
     } else if (form.formState.errors.video) {
       setUploadState('error');
     } else if (videoFile instanceof File && !isUploading && !uploadComplete) {
-      // If we have a file but no upload is in progress and it's not complete, we have an error
-      setUploadState('error');
+      // If we have a file but no upload is in progress and it's not complete, this is not an error
+      // because we're waiting for form submission to upload
+      setUploadState('idle');
     } else {
       setUploadState('idle');
     }
@@ -207,6 +208,15 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
           </div>
           
           <div className="space-y-2">
+            <h3 className="font-medium">File Requirements</h3>
+            <ul className="text-sm text-gray-600 space-y-1 list-disc pl-5">
+              <li>Video must be in a standard format (MP4, MOV, AVI, etc.)</li>
+              <li>File size should ideally be under 500MB for best results</li>
+              <li>Video length should be under 10 minutes</li>
+            </ul>
+          </div>
+          
+          <div className="space-y-2">
             <h3 className="font-medium">Still Having Issues?</h3>
             <p className="text-sm text-gray-600">
               If you're still experiencing problems, please contact support with the following details:
@@ -217,6 +227,13 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
               <li>The size and format of the video you're trying to upload</li>
               <li>Any error messages you see in the browser console (if available)</li>
             </ul>
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <h3 className="font-medium mb-2">Upload Process</h3>
+            <p className="text-sm text-gray-600">
+              For this form, your video will be uploaded when you submit the form, not when you select the file. This helps prevent duplicate uploads and ensures all your form data is submitted together.
+            </p>
           </div>
         </div>
       </DialogContent>
@@ -305,6 +322,13 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                   >
                     Remove Video
                   </Button>
+                  
+                  {!uploadComplete && !isUploading && (
+                    <div className="mt-3 text-sm text-blue-600 text-center">
+                      <Info className="h-4 w-4 inline mr-1" />
+                      Your video will be uploaded when you submit the form
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="p-6">
@@ -314,6 +338,9 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                       <span className={`font-bold text-lg ${hasError ? 'text-red-500' : 'text-blue-600'}`}>
                         Click to upload video
                       </span>
+                      <p className="text-sm text-gray-500 mt-1 text-center">
+                        Your video will be uploaded when you submit the form
+                      </p>
                     </div>
                     
                     <input 
