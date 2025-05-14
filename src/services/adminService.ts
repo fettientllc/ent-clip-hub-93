@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -30,6 +29,10 @@ export interface SubmissionData {
   // Add cloudinaryPublicId to match usage in useSubmitForm
   cloudinaryPublicId?: string;
   signatureProvided?: boolean;
+  // Add these properties to match useSubmitForm
+  cloudinaryFileId?: string;
+  dropboxFileId?: string;
+  dropboxFilePath?: string;
 }
 
 // Define DashboardStats interface
@@ -86,7 +89,10 @@ export const addSubmission = async (submissionData: Partial<SubmissionData>): Pr
       paypalEmail: submissionData.paypalEmail || '',
       folderPath: submissionData.folderPath || '',
       cloudinaryPublicId: submissionData.cloudinaryPublicId || '',
-      signatureProvided: submissionData.signatureProvided || false
+      signatureProvided: submissionData.signatureProvided || false,
+      cloudinaryFileId: submissionData.cloudinaryFileId || '',
+      dropboxFileId: submissionData.dropboxFileId || '',
+      dropboxFilePath: submissionData.dropboxFilePath || ''
     };
     
     // Here you'd typically add the submission to your Supabase database

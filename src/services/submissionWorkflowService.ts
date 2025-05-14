@@ -1,5 +1,5 @@
 import { supabase, SubmissionRecord } from './supabaseService';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";  // Updated import
 
 // Move these functions out of the hook to avoid circular dependencies
 const createSubmissionRecord = (

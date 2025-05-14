@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -295,7 +294,7 @@ export function useSubmitForm() {
           cloudinaryPublicId: data.cloudinaryPublicId,
           signatureProvided: !!data.signature,
           submittedAt: new Date().toISOString(),
-          status: 'pending',
+          status: 'pending' as const,  // Explicitly type as a literal type
           isOwnRecording: data.isOwnRecording,
           recorderName: !data.isOwnRecording ? data.recorderName : undefined,
           wantCredit: data.wantCredit,
