@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useDropboxService } from '@/services/dropboxService';
-import { useSupabaseService, SubmissionRecord } from "@/services/supabaseService";
+import { useSupabaseService } from "@/services/supabaseService";
 import { CheckCircle, XCircle, Loader } from "lucide-react";
 
 interface SubmissionApprovalProps {
@@ -74,7 +74,7 @@ const SubmissionApproval: React.FC<SubmissionApprovalProps> = ({
   const handleReject = async () => {
     setIsProcessing(true);
     try {
-      const result = await rejectSubmission(submissionId);
+      const result = await supabaseService.rejectSubmission(submissionId);
       
       if (!result) {
         throw new Error("Failed to reject submission");

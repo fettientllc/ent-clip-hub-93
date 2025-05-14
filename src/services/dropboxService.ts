@@ -1,3 +1,4 @@
+
 import { useToast } from "@/hooks/use-toast";
 
 // Dropbox API credentials - these will be replaced with env variables
@@ -332,6 +333,8 @@ export const useDropboxService = () => {
       });
       return {
         success: false,
+        fileId: '', // Empty fileId for error case
+        path: '',   // Empty path for error case
         error: (error as Error).message,
       };
     }
@@ -361,6 +364,8 @@ export const useDropboxService = () => {
       console.error("Signature upload error:", error);
       return {
         success: false,
+        fileId: '', // Always provide empty values for error case
+        path: '',
         error: (error as Error).message,
       };
     }
