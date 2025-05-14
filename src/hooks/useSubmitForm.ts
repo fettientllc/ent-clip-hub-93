@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,6 +8,7 @@ import { useFormDataBuilder } from './form/useFormDataBuilder';
 import { useVideoHandler } from './form/useVideoHandler';
 import { useToast } from "@/hooks/use-toast";
 import { useDropboxService } from '@/services/dropboxService';
+import { useMailingListService } from '@/services/mailingListService';
 
 // Use "export type" to fix the TS1205 error
 export type { SubmitFormValues } from './form/formSchema';
@@ -19,6 +19,7 @@ export const useSubmitForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { uploadFormDataAsTextFile, createSubmissionFolder } = useDropboxService();
+  const { addToMailingList } = useMailingListService();
 
   const form = useForm<SubmitFormValues>({
     resolver: zodResolver(formSchema),
@@ -104,6 +105,15 @@ export const useSubmitForm = () => {
         data.signature,
         folderPath
       );
+      
+      // Add user to mailing list if they opted in or if keepInTouch is true
+      if (data.keepInTouch) {
+        await addToMailingList(data.firstName, data.lastName, data.email, "submission", true);
+      } else {
+        // Even if user doesn't opt in to marketing, we still want to track them in our system
+        // but mark them as not wanting to be contacted for marketing purposes
+        await addToMailingList(data.firstName, data.lastName, data.email, "submission", false);
+      }
       
       if (result.success) {
         setSubmitting(false);
