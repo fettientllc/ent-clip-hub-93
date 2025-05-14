@@ -1,3 +1,4 @@
+
 import { useDropboxService } from "./dropboxService";
 import { useToast } from "@/hooks/use-toast";
 import { useMailingListService } from "./mailingListService";
@@ -414,5 +415,5 @@ export const useAdminService = () => {
   };
 };
 
-// Export the addSubmission function so it can be used in the form submission process
-export { addSubmission };
+// Remove the duplicate export here - this was causing the error
+// export { addSubmission };
