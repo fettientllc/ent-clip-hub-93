@@ -131,8 +131,8 @@ export function useSubmitForm() {
         description: "Thank you for your submission.",
       });
       
-      // Redirect to thank you page
-      navigate("/thank-you");
+      // Redirect to thank you confirmation page (fixed URL)
+      navigate("/thank-you-confirmation");
       
     } catch (error) {
       console.error("Submission error:", error);

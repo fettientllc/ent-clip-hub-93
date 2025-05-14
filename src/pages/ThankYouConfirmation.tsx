@@ -4,8 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { toast } from "@/hooks/use-toast";
 
 const ThankYouConfirmation: React.FC = () => {
+  React.useEffect(() => {
+    // Show a toast when the page loads to confirm successful submission
+    toast({
+      title: "Submission Complete",
+      description: "Your video has been submitted successfully!",
+    });
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen bg-white">
       <Header />
