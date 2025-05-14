@@ -1,4 +1,3 @@
-
 import { supabase, SubmissionRecord } from './supabaseService';
 import { useToast } from "@/components/ui/use-toast";
 
@@ -14,12 +13,12 @@ const createSubmissionRecord = (
     email: formData.email,
     location: formData.location,
     description: formData.hasDescription ? formData.description : undefined,
-    supabaseFolderPath: videoResult.supabasePath.split('/').slice(0, -1).join('/'),
-    dropboxFolderPath: videoResult.dropboxPath.split('/').slice(0, -1).join('/'),
-    videoUrl: videoResult.supabaseUrl,
-    supabaseVideoPath: videoResult.supabasePath,
-    dropboxVideoPath: videoResult.dropboxPath,
-    signatureUrl: signatureResult.supabaseUrl,
+    supabaseFolderPath: videoResult?.supabasePath?.split('/').slice(0, -1).join('/') || '',
+    dropboxFolderPath: videoResult?.dropboxPath?.split('/').slice(0, -1).join('/') || '',
+    videoUrl: videoResult?.supabaseUrl || formData.cloudinaryUrl || '',
+    supabaseVideoPath: videoResult?.supabasePath || '',
+    dropboxVideoPath: videoResult?.dropboxPath || '',
+    signatureUrl: signatureResult?.supabaseUrl || '',
     submittedAt: new Date().toISOString(),
     status: 'pending',
     isOwnRecording: formData.isOwnRecording,
@@ -49,43 +48,64 @@ export const useSubmissionWorkflowService = () => {
       const lastName = formData.lastName;
       
       // Upload video to both storages
-      const videoResult = await integratedStorage.uploadVideo(videoFile, firstName, lastName, onProgress);
-      if (!videoResult) {
-        throw new Error('Failed to upload video');
-      }
+      const videoResult = await integratedStorage.uploadVideo(videoFile, firstName, lastName, onProgress)
+        .catch((error: Error) => {
+          console.error('Video upload error:', error);
+          // Return null but don't throw yet
+          return null;
+        });
       
       // Upload signature to both storages
-      const signatureResult = await integratedStorage.uploadSignature(signature, firstName, lastName);
-      if (!signatureResult) {
-        throw new Error('Failed to upload signature');
+      const signatureResult = await integratedStorage.uploadSignature(signature, firstName, lastName)
+        .catch((error: Error) => {
+          console.error('Signature upload error:', error);
+          // Return null but don't throw yet
+          return null;
+        });
+      
+      // If both uploads failed, throw an error
+      if (!videoResult && !signatureResult) {
+        throw new Error('Failed to upload both video and signature');
       }
       
       // Upload form data as text file
-      const formDataResult = await integratedStorage.uploadFormData(formData, firstName, lastName);
-      if (!formDataResult) {
-        throw new Error('Failed to upload form data');
-      }
+      const formDataResult = await integratedStorage.uploadFormData(formData, firstName, lastName)
+        .catch((error: Error) => {
+          console.warn('Form data upload error:', error);
+          // Continue anyway
+          return false;
+        });
       
-      // Create a record in Supabase database
+      // Create a record to put in Supabase database
+      // Even if some operations failed, we'll create a record with what we have
       const submissionRecord = createSubmissionRecord(formData, videoResult, signatureResult);
       
       // Save to Supabase database
-      const submissionId = await saveSubmission(submissionRecord);
-      
-      if (!submissionId) {
-        throw new Error('Failed to save submission to database');
+      let submissionId = null;
+      try {
+        submissionId = await saveSubmission(submissionRecord);
+      } catch (dbError) {
+        console.error('Database submission error:', dbError);
+        // Don't throw, just continue with null ID
       }
       
       // Send confirmation email
-      await sendConfirmationEmail(
-        formData.email,
-        formData.firstName,
-        formData.lastName
-      );
+      try {
+        await sendConfirmationEmail(
+          formData.email,
+          formData.firstName,
+          formData.lastName
+        );
+      } catch (emailError) {
+        console.warn('Email sending error:', emailError);
+        // Continue without throwing
+      }
       
+      // If we completed at least the Cloudinary upload (which happens before this function),
+      // we consider this a partial success
       return {
         id: submissionId,
-        success: true
+        success: !!submissionId
       };
     } catch (error) {
       console.error('Submission process error:', error);

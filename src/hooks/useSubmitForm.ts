@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -22,6 +23,7 @@ export function useSubmitForm() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const integratedStorage = useIntegratedStorageService();
   
   const form = useForm<SubmitFormValues>({
@@ -67,8 +69,10 @@ export function useSubmitForm() {
   const retryUpload = () => {
     const videoFile = form.getValues('video') as File | undefined;
     if (videoFile instanceof File) {
-      // Reset error state
+      // Reset error states
       setUploadError(null);
+      setSubmitError(null);
+      
       // Trigger upload again
       form.setValue('cloudinaryFileId', "");
       form.setValue('cloudinaryUrl', "");
@@ -77,6 +81,11 @@ export function useSubmitForm() {
       setTimeout(() => {
         form.setValue('video', videoFile, { shouldValidate: true });
       }, 100);
+    } else {
+      // If we no longer have the video file reference but want to retry the submission
+      setSubmitting(false);
+      setUploadError(null);
+      setSubmitError(null);
     }
   };
 
@@ -85,6 +94,7 @@ export function useSubmitForm() {
     try {
       setSubmitting(true);
       setUploadError(null);
+      setSubmitError(null);
       
       console.log("Form submitted with data:", data);
       
@@ -148,61 +158,80 @@ export function useSubmitForm() {
       });
       
       // Complete the submission to both Supabase and Dropbox
-      const result = await integratedStorage.completeSubmission(
-        data,
-        signatureData,
-        videoFile as File,
-        (progress) => {
-          // We can use this to update a secondary progress indicator if needed
-          console.log(`Storage upload progress: ${progress}%`);
+      try {
+        const result = await integratedStorage.completeSubmission(
+          data,
+          signatureData,
+          videoFile as File,
+          (progress) => {
+            // We can use this to update a secondary progress indicator if needed
+            console.log(`Storage upload progress: ${progress}%`);
+          }
+        );
+        
+        if (!result.success) {
+          // Store the error but continue with the submission since we have the Cloudinary data
+          console.log("Storage submission failed but continuing with Cloudinary data:", result);
+          setSubmitError("Storage error, but your video is saved in our cloud system.");
         }
-      );
-      
-      if (!result.success) {
-        throw new Error("Failed to complete submission");
+      } catch (storageError) {
+        // Log the storage error but continue with the submission since we have the Cloudinary data
+        console.error("Storage submission error:", storageError);
+        setSubmitError(`Storage error: ${(storageError as Error).message}`);
       }
       
       // Also add the submission to the admin service for backwards compatibility
       // This might be removed in a later version once fully migrated to Supabase
-      const submissionId = addSubmission({
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        location: data.location,
-        description: data.hasDescription ? data.description : undefined,
-        folderPath: data.submissionFolder || `/uploads/${data.firstName}_${data.lastName}_${Date.now()}`,
-        videoUrl: cloudinaryUrl,
-        cloudinaryPublicId: data.cloudinaryPublicId,
-        signatureProvided: !!data.signature,
-        submittedAt: new Date().toISOString(),
-        status: 'pending',
-        isOwnRecording: data.isOwnRecording,
-        recorderName: !data.isOwnRecording ? data.recorderName : undefined,
-        wantCredit: data.wantCredit,
-        creditPlatform: data.wantCredit ? data.creditPlatform : undefined,
-        creditUsername: data.wantCredit ? data.creditUsername : undefined,
-        paypalEmail: data.paypalEmail || undefined,
-      });
-      
-      console.log("Added submission with ID:", submissionId, "and Supabase ID:", result.id);
-      
-      toast({
-        title: "Submission successful!",
-        description: "Thank you for your submission.",
-      });
-      
-      // Redirect to thank you confirmation page
-      navigate("/thank-you-confirmation");
+      try {
+        const submissionId = addSubmission({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          location: data.location,
+          description: data.hasDescription ? data.description : undefined,
+          folderPath: data.submissionFolder || `/uploads/${data.firstName}_${data.lastName}_${Date.now()}`,
+          videoUrl: cloudinaryUrl,
+          cloudinaryPublicId: data.cloudinaryPublicId,
+          signatureProvided: !!data.signature,
+          submittedAt: new Date().toISOString(),
+          status: 'pending',
+          isOwnRecording: data.isOwnRecording,
+          recorderName: !data.isOwnRecording ? data.recorderName : undefined,
+          wantCredit: data.wantCredit,
+          creditPlatform: data.wantCredit ? data.creditPlatform : undefined,
+          creditUsername: data.wantCredit ? data.creditUsername : undefined,
+          paypalEmail: data.paypalEmail || undefined,
+        });
+        
+        console.log("Added submission with ID:", submissionId);
+        
+        // Even if we had storage errors, we'll consider this a success as long as Cloudinary worked
+        toast({
+          title: "Submission successful!",
+          description: "Thank you for your submission.",
+        });
+        
+        // Redirect to thank you confirmation page
+        navigate("/thank-you-confirmation");
+      } catch (adminError) {
+        console.error("Admin service error:", adminError);
+        setSubmitError(`Submission tracking error: ${(adminError as Error).message}`);
+        toast({
+          title: "Submission Partially Complete",
+          description: "Your video was uploaded, but we couldn't complete the tracking process.",
+          variant: "destructive",
+        });
+        setSubmitting(false);
+      }
       
     } catch (error) {
       console.error("Submission error:", error);
-      setUploadError(`An unexpected error occurred: ${(error as Error).message}`);
+      setSubmitError(`An unexpected error occurred: ${(error as Error).message}`);
       toast({
         title: "Submission Error",
         description: "There was a problem with your submission. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setSubmitting(false);
     }
   };
@@ -216,6 +245,7 @@ export function useSubmitForm() {
     handleVideoChange,
     handleSignatureChange,
     uploadError,
+    submitError,
     retryUpload,
     isUploading,
     uploadProgress

@@ -19,14 +19,28 @@ export const useIntegratedStorageService = () => {
     dropboxPath: string;
   } | null> => {
     try {
-      // Create Supabase folder structure: /{firstName}_{lastName}/submission/
-      const supabasePath = await supabaseService.createStorageFolder(firstName, lastName);
+      let supabasePath = '';
+      let dropboxPath = '';
       
-      // Create Dropbox folder structure: /{firstName}_{lastName}/{siteName}/
-      const dropboxPath = await dropboxService.createSubmissionFolder(firstName, lastName);
+      try {
+        // Create Supabase folder structure: /{firstName}_{lastName}/submission/
+        supabasePath = await supabaseService.createStorageFolder(firstName, lastName);
+      } catch (supabaseError) {
+        console.warn('Supabase folder creation failed:', supabaseError);
+        // Continue with empty supabasePath
+      }
       
-      if (!dropboxPath) {
-        throw new Error('Failed to create Dropbox folder');
+      try {
+        // Create Dropbox folder structure: /{firstName}_{lastName}/{siteName}/
+        dropboxPath = await dropboxService.createSubmissionFolder(firstName, lastName) || '';
+      } catch (dropboxError) {
+        console.warn('Dropbox folder creation failed:', dropboxError);
+        // Continue with empty dropboxPath
+      }
+      
+      // If both failed, throw error
+      if (!supabasePath && !dropboxPath) {
+        throw new Error('Failed to create storage folders');
       }
       
       return {
@@ -61,35 +75,50 @@ export const useIntegratedStorageService = () => {
       // Create folders first
       const folders = await createFolders(firstName, lastName);
       if (!folders) {
-        throw new Error('Failed to create storage folders');
+        console.warn('Failed to create folders, attempting to continue with default paths');
+      }
+
+      const folderBasePath = `/uploads/${firstName}_${lastName}_${Date.now()}`;
+      const actualFolders = folders || {
+        supabasePath: folderBasePath,
+        dropboxPath: folderBasePath
+      };
+      
+      let supabaseResult = null;
+      try {
+        // Upload to Supabase
+        supabaseResult = await supabaseService.uploadFileToStorage(
+          file,
+          actualFolders.supabasePath,
+          `video-${Date.now()}-${file.name}`
+        );
+      } catch (supabaseError) {
+        console.warn('Supabase upload failed:', supabaseError);
+        // Continue without throwing
       }
       
-      // Upload to Supabase
-      const supabaseResult = await supabaseService.uploadFileToStorage(
-        file,
-        folders.supabasePath,
-        `video-${Date.now()}-${file.name}`
-      );
-      
-      if (!supabaseResult) {
-        throw new Error('Failed to upload to Supabase');
+      let dropboxResult = { success: false, path: '', error: 'Not attempted' };
+      try {
+        // Upload to Dropbox
+        dropboxResult = await dropboxService.uploadFile(
+          file,
+          actualFolders.dropboxPath,
+          onProgress
+        );
+      } catch (dropboxError) {
+        console.warn('Dropbox upload failed:', dropboxError);
+        // Continue without throwing
       }
       
-      // Upload to Dropbox
-      const dropboxResult = await dropboxService.uploadFile(
-        file,
-        folders.dropboxPath,
-        onProgress
-      );
-      
-      if (!dropboxResult.success) {
-        throw new Error(`Failed to upload to Dropbox: ${dropboxResult.error}`);
+      // If both uploads failed, throw error
+      if (!supabaseResult && !dropboxResult.success) {
+        throw new Error('Failed to upload to both storage systems');
       }
       
       return {
-        supabasePath: supabaseResult.path,
-        supabaseUrl: supabaseResult.url,
-        dropboxPath: dropboxResult.path || folders.dropboxPath + '/' + file.name,
+        supabasePath: supabaseResult?.path || actualFolders.supabasePath + '/' + file.name,
+        supabaseUrl: supabaseResult?.url || '',
+        dropboxPath: dropboxResult.path || actualFolders.dropboxPath + '/' + file.name,
       };
     } catch (error) {
       console.error('Video upload error:', error);
@@ -117,9 +146,11 @@ export const useIntegratedStorageService = () => {
     try {
       // Create folders first
       const folders = await createFolders(firstName, lastName);
-      if (!folders) {
-        throw new Error('Failed to create storage folders');
-      }
+      const folderBasePath = `/uploads/${firstName}_${lastName}_${Date.now()}`;
+      const actualFolders = folders || {
+        supabasePath: folderBasePath,
+        dropboxPath: folderBasePath
+      };
       
       // Convert data URL to blob
       const signatureFile = await fileUtilsService.dataUrlToFile(
@@ -127,30 +158,39 @@ export const useIntegratedStorageService = () => {
         `signature-${Date.now()}.png`
       );
       
-      // Upload to Supabase
-      const supabaseResult = await supabaseService.uploadFileToStorage(
-        signatureFile,
-        folders.supabasePath
-      );
-      
-      if (!supabaseResult) {
-        throw new Error('Failed to upload signature to Supabase');
+      let supabaseResult = null;
+      try {
+        // Upload to Supabase
+        supabaseResult = await supabaseService.uploadFileToStorage(
+          signatureFile,
+          actualFolders.supabasePath
+        );
+      } catch (supabaseError) {
+        console.warn('Supabase signature upload failed:', supabaseError);
+        // Continue without throwing
       }
       
-      // Upload to Dropbox
-      const dropboxResult = await dropboxService.uploadFile(
-        signatureFile,
-        folders.dropboxPath
-      );
+      let dropboxResult = { success: false, path: '', error: 'Not attempted' };
+      try {
+        // Upload to Dropbox
+        dropboxResult = await dropboxService.uploadFile(
+          signatureFile,
+          actualFolders.dropboxPath
+        );
+      } catch (dropboxError) {
+        console.warn('Dropbox signature upload failed:', dropboxError);
+        // Continue without throwing
+      }
       
-      if (!dropboxResult.success) {
-        throw new Error(`Failed to upload signature to Dropbox: ${dropboxResult.error}`);
+      // If both uploads failed, throw error
+      if (!supabaseResult && !dropboxResult.success) {
+        throw new Error('Failed to upload signature to both storage systems');
       }
       
       return {
-        supabasePath: supabaseResult.path,
-        supabaseUrl: supabaseResult.url,
-        dropboxPath: dropboxResult.path || `${folders.dropboxPath}/signature.png`,
+        supabasePath: supabaseResult?.path || actualFolders.supabasePath + '/signature.png',
+        supabaseUrl: supabaseResult?.url || '',
+        dropboxPath: dropboxResult.path || `${actualFolders.dropboxPath}/signature.png`,
       };
     } catch (error) {
       console.error('Signature upload error:', error);

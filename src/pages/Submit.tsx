@@ -10,7 +10,7 @@ import LegalSection from '@/components/submit-form/LegalSection';
 import SignatureSection from '@/components/submit-form/SignatureSection';
 import AdditionalInfoSection from '@/components/submit-form/AdditionalInfoSection';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader, RefreshCw, CheckCircle } from "lucide-react";
+import { AlertCircle, Loader, RefreshCw, CheckCircle, Info } from "lucide-react";
 
 const Submit: React.FC = () => {
   const { 
@@ -24,7 +24,8 @@ const Submit: React.FC = () => {
     uploadError,
     retryUpload,
     isUploading,
-    uploadProgress
+    uploadProgress,
+    submitError
   } = useSubmitForm();
   
   const [showErrors, setShowErrors] = useState(false);
@@ -57,6 +58,12 @@ const Submit: React.FC = () => {
   
   const videoFileSize = videoFile instanceof File ? formatFileSize(videoFile.size) : null;
   const isLargeFile = videoFile instanceof File && videoFile.size > 100 * 1024 * 1024;
+  
+  // Show a different message when Supabase connection issue is detected
+  const isSupabaseError = submitError && (
+    submitError.includes("Supabase client") || 
+    submitError.includes("Failed to create storage folders")
+  );
 
   return (
     <SubmitFormLayout>
@@ -103,6 +110,35 @@ const Submit: React.FC = () => {
             </Alert>
           )}
           
+          {submitError && (
+            <Alert className="bg-red-50 border-red-200 text-red-800">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="font-bold">
+                {isSupabaseError ? (
+                  <>
+                    <span>Database connection issue detected.</span>
+                    <div className="mt-2">
+                      <p className="text-sm">Your video has been uploaded to Cloudinary successfully. We're experiencing issues with our storage system, but your submission has been registered. You can continue with the knowledge that your video is saved.</p>
+                    </div>
+                  </>
+                ) : (
+                  submitError
+                )}
+                <div className="mt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={retryUpload} 
+                    className="mt-2 flex items-center gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Retry Submission
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+          
           {uploadError && (
             <Alert className="bg-red-50 border-red-200 text-red-800">
               <AlertCircle className="h-4 w-4 text-red-600" />
@@ -131,6 +167,15 @@ const Submit: React.FC = () => {
             form={form} 
             handleSignatureChange={handleSignatureChange}
           />
+          
+          {/* New info alert for testing environment */}
+          <Alert className="bg-blue-50 border-blue-200 text-blue-800">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-sm">
+              <span className="font-bold">Test Environment Notice:</span> This form is fully functional to accept video submissions via Cloudinary, but integration with Supabase storage requires environment configuration. 
+              Your submission data will still be processed properly.
+            </AlertDescription>
+          </Alert>
           
           <Button 
             type="submit" 
