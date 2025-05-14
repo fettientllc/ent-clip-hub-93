@@ -39,6 +39,9 @@ export function useSubmitForm() {
       wantCredit: false,
       signature: "",
       paypalEmail: null,
+      cloudinaryFileId: undefined,
+      cloudinaryUrl: undefined,
+      cloudinaryPublicId: undefined
     },
   });
 
@@ -66,6 +69,8 @@ export function useSubmitForm() {
       setUploadError(null);
       // Trigger upload again
       form.setValue('cloudinaryFileId', undefined);
+      form.setValue('cloudinaryUrl', undefined);
+      form.setValue('cloudinaryPublicId', undefined);
       form.setValue('video', undefined as any);
       setTimeout(() => {
         form.setValue('video', videoFile, { shouldValidate: true });

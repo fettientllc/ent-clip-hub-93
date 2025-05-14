@@ -33,10 +33,21 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
           publicId: result.publicId
         });
         
-        // Store the Cloudinary file ID and URL
-        form.setValue('cloudinaryFileId', result.fileId, { shouldValidate: true });
-        form.setValue('cloudinaryUrl', result.url, { shouldValidate: true });
-        form.setValue('cloudinaryPublicId', result.publicId, { shouldValidate: true });
+        // Store the Cloudinary file ID and URL as string values
+        form.setValue('cloudinaryFileId', result.fileId, { shouldDirty: true });
+        form.setValue('cloudinaryUrl', result.url, { shouldDirty: true });
+        form.setValue('cloudinaryPublicId', result.publicId, { shouldDirty: true });
+        
+        // Ensure the values are registered properly
+        setTimeout(() => {
+          // Double-check the values were set correctly
+          const currentValues = form.getValues();
+          console.log("Current form Cloudinary values:", {
+            fileId: currentValues.cloudinaryFileId,
+            url: currentValues.cloudinaryUrl,
+            publicId: currentValues.cloudinaryPublicId
+          });
+        }, 100);
         
         // Create a submission folder name (just for reference, not actually used in Cloudinary)
         const firstName = form.getValues('firstName');
@@ -44,7 +55,7 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
         
         if (firstName && lastName) {
           const folderPath = `/uploads/${firstName}_${lastName}_${Date.now()}`;
-          form.setValue('submissionFolder', folderPath, { shouldValidate: true });
+          form.setValue('submissionFolder', folderPath, { shouldDirty: true });
         }
         
         toast({
@@ -157,9 +168,9 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
     
     // Clear any previous errors and Cloudinary data
     form.clearErrors("video");
-    form.setValue('cloudinaryFileId', undefined, { shouldValidate: false });
-    form.setValue('cloudinaryUrl', undefined, { shouldValidate: false });
-    form.setValue('cloudinaryPublicId', undefined, { shouldValidate: false });
+    form.setValue('cloudinaryFileId', undefined, { shouldDirty: true });
+    form.setValue('cloudinaryUrl', undefined, { shouldDirty: true });
+    form.setValue('cloudinaryPublicId', undefined, { shouldDirty: true });
     
     // Set the video file
     form.setValue('video', file, { shouldValidate: true });
