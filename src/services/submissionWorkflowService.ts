@@ -1,6 +1,6 @@
 
 import { useIntegratedStorageService } from './integratedStorageService';
-import { useSupabaseService, SubmissionRecord } from './supabaseService';
+import { useSupabaseService, SubmissionRecord, supabase } from './supabaseService';
 import { useToast } from "@/hooks/use-toast";
 
 export const useSubmissionWorkflowService = () => {
