@@ -11,7 +11,7 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
-  const { uploadFile } = useDropboxService();
+  const { uploadFile, createSubmissionFolder } = useDropboxService();
 
   // Function to handle video upload to Dropbox
   const uploadToDropbox = async (file: File) => {
@@ -20,8 +20,24 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
     setIsUploading(true);
     
     try {
-      // Upload file to Dropbox
-      const result = await uploadFile(file, "/uploads", (progress) => {
+      // Create a submission folder for this upload
+      const firstName = form.getValues('firstName');
+      const lastName = form.getValues('lastName');
+      
+      // Only create folder if we have name information
+      let folderPath = "/uploads";
+      
+      if (firstName && lastName) {
+        const createdFolder = await createSubmissionFolder(firstName, lastName);
+        if (createdFolder) {
+          folderPath = createdFolder;
+          // Store the folder path for later use
+          form.setValue('submissionFolder', folderPath);
+        }
+      }
+      
+      // Upload file to the created folder or default uploads folder
+      const result = await uploadFile(file, folderPath, (progress) => {
         setUploadProgress(progress);
       });
       

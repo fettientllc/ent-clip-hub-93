@@ -18,7 +18,7 @@ export const useSubmitForm = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { uploadFile, uploadFormDataAsTextFile, createSubmissionFolder } = useDropboxService();
+  const { uploadFormDataAsTextFile, createSubmissionFolder } = useDropboxService();
 
   const form = useForm<SubmitFormValues>({
     resolver: zodResolver(formSchema),
@@ -34,6 +34,7 @@ export const useSubmitForm = () => {
       signature: "",
       dropboxFileId: undefined,
       dropboxFilePath: undefined,
+      submissionFolder: undefined,
     },
     mode: "onChange",
   });
@@ -55,7 +56,7 @@ export const useSubmitForm = () => {
     if (!data.dropboxFileId || !data.dropboxFilePath) {
       toast({
         title: "Upload required",
-        description: "Please upload your video to Dropbox before submitting the form.",
+        description: "Please wait for your video to finish uploading before submitting the form.",
         variant: "destructive",
       });
       return;
@@ -65,16 +66,21 @@ export const useSubmitForm = () => {
       setSubmitting(true);
       setUploadError(null);
       
-      // 1. Create a unique folder for this submission
-      const folderPath = await createSubmissionFolder(data.firstName, data.lastName);
+      // Use existing submission folder or create a new one
+      let folderPath = data.submissionFolder;
       
       if (!folderPath) {
-        throw new Error("Failed to create submission folder");
+        // Create a submission folder if one wasn't already created
+        folderPath = await createSubmissionFolder(data.firstName, data.lastName);
+        
+        if (!folderPath) {
+          throw new Error("Failed to create submission folder");
+        }
       }
       
-      console.log(`Created submission folder: ${folderPath}`);
+      console.log(`Using submission folder: ${folderPath}`);
       
-      // 2. Upload the form data as a text file to the submission folder
+      // Upload the form data as a text file to the submission folder
       const formDataObject = {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -104,7 +110,7 @@ export const useSubmitForm = () => {
         
         toast({
           title: "Form submitted successfully!",
-          description: "Your video and form information have been saved to Dropbox.",
+          description: "Thank you for your submission.",
           duration: 8000,
         });
         
