@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,6 +34,7 @@ export const useSubmitForm = () => {
       noOtherSubmission: false,
       keepInTouch: false,
       isOwnRecording: true,
+      recorderName: "",
       wantCredit: false,
       creditPlatform: "",
       creditUsername: "",
@@ -99,6 +99,7 @@ export const useSubmitForm = () => {
         noOtherSubmission: data.noOtherSubmission,
         keepInTouch: data.keepInTouch || false,
         isOwnRecording: data.isOwnRecording,
+        recorderName: !data.isOwnRecording ? data.recorderName : "",
         wantCredit: data.wantCredit,
         creditPlatform: data.wantCredit ? data.creditPlatform : "",
         creditUsername: data.wantCredit ? data.creditUsername : "",

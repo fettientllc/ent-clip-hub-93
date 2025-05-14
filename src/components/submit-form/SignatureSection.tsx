@@ -13,12 +13,12 @@ interface SignatureSectionProps {
 const SignatureSection: React.FC<SignatureSectionProps> = ({ form, handleSignatureChange }) => {
   return (
     <div className="pt-4 border-t border-gray-200">
+      <h3 className="text-lg font-medium text-black font-bold mb-4">Signature</h3>
       <FormField
         control={form.control}
         name="signature"
         render={() => (
           <FormItem>
-            <FormLabel>Signature</FormLabel>
             <FormControl>
               <SignaturePad onSignatureChange={handleSignatureChange} />
             </FormControl>

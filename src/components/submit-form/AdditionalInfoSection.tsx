@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Mail } from 'lucide-react';
 import { SubmitFormValues } from '@/hooks/useSubmitForm';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface AdditionalInfoSectionProps {
   form: UseFormReturn<SubmitFormValues>;
@@ -17,10 +18,11 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({ form }) =
   // Get values from form to conditionally render sections
   const hasDescription = form.watch('hasDescription');
   const wantCredit = form.watch('wantCredit');
+  const isOwnRecording = form.watch('isOwnRecording');
   
   return (
     <div className="space-y-6 border-t border-gray-200 pt-6">
-      <h3 className="text-lg font-medium">Additional Information</h3>
+      <h3 className="text-lg font-medium text-black font-bold">Additional Information</h3>
       
       <FormField
         control={form.control}
@@ -104,19 +106,53 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({ form }) =
         control={form.control}
         name="isOwnRecording"
         render={({ field }) => (
-          <FormItem className="flex flex-row items-center justify-between rounded-lg border border-gray-200 p-4">
-            <div className="space-y-0.5">
-              <FormLabel className="text-black font-bold text-base">Did you record this clip?</FormLabel>
-            </div>
+          <FormItem className="space-y-3">
+            <FormLabel className="text-black font-bold">Did you record this clip?</FormLabel>
             <FormControl>
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
+              <RadioGroup 
+                onValueChange={(value) => field.onChange(value === 'yes')} 
+                defaultValue={field.value ? 'yes' : 'no'}
+                className="flex space-x-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="yes" id="yes-recording" />
+                  <FormLabel htmlFor="yes-recording" className="font-normal">Yes</FormLabel>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no" id="no-recording" />
+                  <FormLabel htmlFor="no-recording" className="font-normal">No</FormLabel>
+                </div>
+              </RadioGroup>
             </FormControl>
+            <FormMessage />
           </FormItem>
         )}
       />
+      
+      {!isOwnRecording && (
+        <FormField
+          control={form.control}
+          name="recorderName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-black font-bold">Who recorded this?</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input 
+                    placeholder="Name of person who recorded this" 
+                    {...field} 
+                    className="bg-white border-gray-300 text-gray-900 pl-10"
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-4 w-4 text-gray-400" />
+                  </div>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
       
       <FormField
         control={form.control}
@@ -197,7 +233,7 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({ form }) =
         name="paypalEmail"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-black font-bold">PayPal Email</FormLabel>
+            <FormLabel className="text-black font-bold">PayPal Email (optional)</FormLabel>
             <FormControl>
               <div className="relative">
                 <Input 

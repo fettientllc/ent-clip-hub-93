@@ -14,7 +14,7 @@ interface PersonalInfoSectionProps {
 const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ form }) => {
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium">Personal Information</h3>
+      <h3 className="text-lg font-medium text-black font-bold">Personal Information</h3>
       
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <FormField
