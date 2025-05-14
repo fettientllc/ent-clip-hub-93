@@ -1,27 +1,44 @@
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "./use-toast";
+import { useVideoHandler } from "./form/useVideoHandler";
+import { useFormDataBuilder } from "./form/useFormDataBuilder";
+import { useSimulatedUploadService } from '@/services/simulatedUploadService';
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate } from 'react-router-dom';
-import { formSchema } from './form/formSchema';
-import type { SubmitFormValues } from './form/formSchema';
-import { useFormDataBuilder } from './form/useFormDataBuilder';
-import { useVideoHandler } from './form/useVideoHandler';
-import { useToast } from "@/hooks/use-toast";
-import { useDropboxService } from '@/services/dropboxService';
-import { useMailingListService } from '@/services/mailingListService';
+// Form schema
+const formSchema = z.object({
+  firstName: z.string().min(2, { message: "First name is required" }),
+  lastName: z.string().min(2, { message: "Last name is required" }),
+  email: z.string().email({ message: "Valid email is required" }),
+  location: z.string().min(2, { message: "Location is required" }),
+  description: z.string().optional(),
+  video: z.any().refine((val) => val instanceof File || val === undefined, {
+    message: "Video is required",
+  }),
+  agreeTerms: z.boolean().refine((val) => val === true, {
+    message: "You must agree to the terms",
+  }),
+  noOtherSubmission: z.boolean().refine((val) => val === true, {
+    message: "You must confirm this is your only submission",
+  }),
+  keepInTouch: z.boolean().optional(),
+  signature: z.string().min(1, { message: "Signature is required" }),
+  dropboxFileId: z.string().optional(),
+  dropboxFilePath: z.string().optional(),
+  submissionFolder: z.string().optional(),
+});
 
-// Use "export type" to fix the TS1205 error
-export type { SubmitFormValues } from './form/formSchema';
+export type SubmitFormValues = z.infer<typeof formSchema>;
 
-export const useSubmitForm = () => {
+export function useSubmitForm() {
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { uploadFormDataAsTextFile, createSubmissionFolder } = useDropboxService();
-  const { addToMailingList } = useMailingListService();
-
+  
   const form = useForm<SubmitFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -29,141 +46,100 @@ export const useSubmitForm = () => {
       lastName: "",
       email: "",
       location: "",
-      hasDescription: false,
       description: "",
       agreeTerms: false,
       noOtherSubmission: false,
       keepInTouch: false,
-      isOwnRecording: true,
-      recorderName: "",
-      wantCredit: false,
-      creditPlatform: "",
-      creditUsername: "",
-      paypalEmail: "",
       signature: "",
-      dropboxFileId: undefined,
-      dropboxFilePath: undefined,
-      submissionFolder: undefined,
     },
-    mode: "onChange",
   });
-  
-  const { videoFileName, setVideoFileName, handleVideoChange, isUploading, uploadProgress } = useVideoHandler(form);
+
   const { buildFormData } = useFormDataBuilder();
+  const { uploadFormDataAsTextFile } = useSimulatedUploadService();
 
+  // Import video handling logic
+  const {
+    videoFileName,
+    setVideoFileName,
+    handleVideoChange,
+    isUploading,
+    uploadProgress
+  } = useVideoHandler(form);
+
+  // Handle signature change
+  const handleSignatureChange = (signatureData: string) => {
+    form.setValue("signature", signatureData, { shouldValidate: true });
+  };
+
+  // Retry upload if it failed
+  const retryUpload = () => {
+    const videoFile = form.getValues('video') as File | undefined;
+    if (videoFile instanceof File) {
+      // Reset error state
+      setUploadError(null);
+      // Trigger upload again
+      form.setValue('dropboxFileId', undefined);
+      form.setValue('video', undefined as any);
+      setTimeout(() => {
+        form.setValue('video', videoFile, { shouldValidate: true });
+      }, 100);
+    }
+  };
+
+  // Submit handler
   const onSubmit = async (data: SubmitFormValues) => {
-    // First, check if we have selected a video
-    if (!data.video || !(data.video instanceof File)) {
-      form.setError("video", {
-        type: "manual",
-        message: "Please upload a valid video file",
-      });
-      return;
-    }
-    
-    // Check if the video has been uploaded to Dropbox
-    if (!data.dropboxFileId || !data.dropboxFilePath) {
-      toast({
-        title: "Upload required",
-        description: "Please wait for your video to finish uploading before submitting the form.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setSubmitting(true);
       setUploadError(null);
       
-      // Use existing submission folder or create a new one
-      let folderPath = data.submissionFolder;
+      console.log("Form submitted with data:", data);
       
-      if (!folderPath) {
-        // Create a submission folder if one wasn't already created
-        folderPath = await createSubmissionFolder(data.firstName, data.lastName);
-        
-        if (!folderPath) {
-          throw new Error("Failed to create submission folder");
-        }
+      // Check if video was uploaded successfully
+      if (!data.dropboxFileId || !data.dropboxFilePath) {
+        setUploadError("Video upload incomplete. Please try again.");
+        setSubmitting(false);
+        return;
       }
       
-      console.log(`Using submission folder: ${folderPath}`);
+      // Get the folder path (or create a default one if not set)
+      const folderPath = data.submissionFolder || `/submissions/${Date.now()}_${data.firstName}_${data.lastName}`;
       
-      // Upload the form data as a text file to the submission folder
-      const formDataObject = {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        location: data.location,
-        description: data.hasDescription ? data.description : "",
-        agreeTerms: data.agreeTerms,
-        noOtherSubmission: data.noOtherSubmission,
-        keepInTouch: data.keepInTouch || false,
-        isOwnRecording: data.isOwnRecording,
-        recorderName: !data.isOwnRecording ? data.recorderName : "",
-        wantCredit: data.wantCredit,
-        creditPlatform: data.wantCredit ? data.creditPlatform : "",
-        creditUsername: data.wantCredit ? data.creditUsername : "",
-        paypalEmail: data.paypalEmail || "",
-        videoFileName: data.video.name,
-        dropboxFileId: data.dropboxFileId,
-        dropboxFilePath: data.dropboxFilePath,
-        submittedAt: new Date().toISOString(),
-      };
-      
-      console.log("Uploading form data as text file...");
-      
-      // Upload the form data with the signature
-      const result = await uploadFormDataAsTextFile(
-        formDataObject, 
+      // Upload form data as text file
+      const formDataResult = await uploadFormDataAsTextFile(
+        data,
         data.signature,
         folderPath
       );
       
-      // Add user to mailing list if they opted in or if keepInTouch is true
-      if (data.keepInTouch) {
-        await addToMailingList(data.firstName, data.lastName, data.email, "submission", true);
-      } else {
-        // Even if user doesn't opt in to marketing, we still want to track them in our system
-        // but mark them as not wanting to be contacted for marketing purposes
-        await addToMailingList(data.firstName, data.lastName, data.email, "submission", false);
+      if (!formDataResult.success) {
+        setUploadError("Failed to save form data. Please try again.");
+        setSubmitting(false);
+        return;
       }
       
-      if (result.success) {
-        setSubmitting(false);
-        
-        toast({
-          title: "Form submitted successfully!",
-          description: "Thank you for your submission.",
-          duration: 8000,
-        });
-        
-        navigate('/thank-you-confirmation');
-      } else {
-        setUploadError(result.error || "Failed to save form data");
-        setSubmitting(false);
-      }
+      // Simulate API submission delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      console.log("Submission successful!");
+      toast({
+        title: "Submission successful!",
+        description: "Thank you for your submission.",
+      });
+      
+      // Redirect to thank you page
+      navigate("/thank-you");
+      
     } catch (error) {
-      console.error("Form submission error:", error);
-      setUploadError("There was a problem submitting your form. Please try again.");
+      console.error("Submission error:", error);
+      setUploadError(`An unexpected error occurred: ${(error as Error).message}`);
+      toast({
+        title: "Submission Error",
+        description: "There was a problem with your submission. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setSubmitting(false);
     }
-  };
-  
-  // Retry form submission if it failed
-  const retryUpload = () => {
-    const data = form.getValues();
-    if (data) {
-      setSubmitting(true);
-      setUploadError(null);
-      onSubmit(data);
-    } else {
-      setUploadError("Please submit the form again.");
-    }
-  };
-
-  const handleSignatureChange = (signatureData: string) => {
-    form.setValue('signature', signatureData, { shouldValidate: true });
   };
 
   return {
@@ -179,4 +155,4 @@ export const useSubmitForm = () => {
     isUploading,
     uploadProgress
   };
-};
+}

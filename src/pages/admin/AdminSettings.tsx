@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const AdminSettings: React.FC = () => {
   const { toast } = useToast();
@@ -35,11 +37,18 @@ const AdminSettings: React.FC = () => {
   return (
     <AdminLayout title="Settings">
       <div className="space-y-6">
+        <Alert className="bg-blue-50 border-blue-200">
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            Currently using simulated upload service for development. No actual Dropbox credentials needed.
+          </AlertDescription>
+        </Alert>
+
         <Card>
           <CardHeader>
-            <CardTitle>Dropbox Integration</CardTitle>
+            <CardTitle>File Storage Integration</CardTitle>
             <CardDescription>
-              Configure how files are stored and organized in Dropbox
+              Configure how files are stored and organized (Simulation Mode)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -51,7 +60,7 @@ const AdminSettings: React.FC = () => {
                 onChange={(e) => handleChange('approvedFolder', e.target.value)}
               />
               <p className="text-sm text-muted-foreground">
-                Path where approved videos will be stored in Dropbox
+                Path where approved videos will be stored (simulated)
               </p>
             </div>
             

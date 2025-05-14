@@ -4,17 +4,17 @@ import { useState, useEffect } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import type { SubmitFormValues } from "../useSubmitForm";
-import { useDropboxService } from '@/services/dropboxService';
+import { useSimulatedUploadService } from '@/services/simulatedUploadService';
 
 export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
-  const { uploadFile, createSubmissionFolder } = useDropboxService();
+  const { uploadFile, createSubmissionFolder } = useSimulatedUploadService();
 
-  // Function to handle video upload to Dropbox
-  const uploadToDropbox = async (file: File) => {
+  // Function to handle video upload to simulated service
+  const uploadToSimulated = async (file: File) => {
     if (!file) return;
     
     setIsUploading(true);
@@ -73,7 +73,7 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
   useEffect(() => {
     const videoFile = form.watch('video') as File | undefined;
     if (videoFile instanceof File && !form.watch('dropboxFileId')) {
-      uploadToDropbox(videoFile);
+      uploadToSimulated(videoFile);
     }
   }, [form.watch('video')]);
 
