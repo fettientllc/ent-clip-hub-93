@@ -1,3 +1,4 @@
+
 import { useDropboxService } from "./dropboxService";
 import { useToast } from "@/hooks/use-toast";
 import { useMailingListService } from "./mailingListService";
@@ -33,7 +34,7 @@ export interface SubmissionData {
 
 // In-memory storage for demo purposes
 // In a real application, this would be replaced with a database call
-const submissions: SubmissionData[] = [
+let submissions: SubmissionData[] = [
   {
     id: "sub-1",
     firstName: "John",
@@ -96,10 +97,15 @@ const submissions: SubmissionData[] = [
 // This function adds a new submission to the in-memory storage
 export const addSubmission = (submission: Omit<SubmissionData, 'id'>): string => {
   const id = `sub-${submissions.length + 1}`;
-  submissions.push({
+  const newSubmission = {
     id,
     ...submission
-  });
+  };
+  
+  // Add to the beginning of the array so new submissions appear at the top
+  submissions = [newSubmission, ...submissions];
+  
+  console.log("Added submission with ID:", id);
   return id;
 };
 

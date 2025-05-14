@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,12 @@ const AdminDashboard: React.FC = () => {
   // Use effect to fetch the latest data when the component mounts
   useEffect(() => {
     refreshData();
+    
+    // Set up auto-refresh every 30 seconds
+    const refreshInterval = setInterval(refreshData, 30000);
+    
+    // Clean up the interval when component unmounts
+    return () => clearInterval(refreshInterval);
   }, []);
   
   // Function to refresh dashboard data
@@ -80,7 +87,7 @@ const AdminDashboard: React.FC = () => {
       <div className="mb-6 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-gray-500">{formattedDate}</p>
+          <p className="text-gray-500">{format(new Date(), 'MMMM d, yyyy')}</p>
         </div>
         <Button onClick={refreshData}>Refresh Data</Button>
       </div>

@@ -1,233 +1,162 @@
 
-import { useState, useMemo, useCallback } from "react";
-import { SubmissionData } from "./adminService";
+import { useState, useEffect } from 'react';
+import { SubmissionData } from './adminService';
 
-export const dateFilters: Record<string, { label: string, filter: (date: Date) => boolean }> = {
-  all: { 
-    label: "All Time", 
-    filter: () => true 
-  },
-  today: {
-    label: "Today",
-    filter: (date: Date) => {
-      const today = new Date();
-      return date.getDate() === today.getDate() &&
-        date.getMonth() === today.getMonth() &&
-        date.getFullYear() === today.getFullYear();
-    }
-  },
-  yesterday: {
-    label: "Yesterday",
-    filter: (date: Date) => {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      return date.getDate() === yesterday.getDate() &&
-        date.getMonth() === yesterday.getMonth() &&
-        date.getFullYear() === yesterday.getFullYear();
-    }
-  },
-  thisWeek: {
-    label: "This Week",
-    filter: (date: Date) => {
-      const today = new Date();
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay());
-      startOfWeek.setHours(0, 0, 0, 0);
-      return date >= startOfWeek;
-    }
-  },
-  thisMonth: {
-    label: "This Month",
-    filter: (date: Date) => {
-      const today = new Date();
-      return date.getMonth() === today.getMonth() &&
-        date.getFullYear() === today.getFullYear();
-    }
-  },
-  last30days: {
-    label: "Last 30 Days",
-    filter: (date: Date) => {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      return date >= thirtyDaysAgo;
-    }
-  },
-};
+interface FilterOptions {
+  pending: boolean;
+  approved: boolean;
+  rejected: boolean;
+  ownRecording: boolean;
+  wantCredit: boolean;
+  missingPaypal: boolean;
+}
 
-export const filterSubmissions = (
-  submissions: SubmissionData[],
-  searchTerm: string,
-  filters: {
-    dateRange: string;
-    ownRecording: boolean | null;
-    wantCredit: boolean | null;
-    hasPaypalEmail: boolean | null;
-    status: string;
-  }
-) => {
-  return submissions.filter(submission => {
-    // Search term filtering
-    const searchLower = searchTerm.toLowerCase().trim();
-    if (searchTerm && !`${submission.firstName} ${submission.lastName}`.toLowerCase().includes(searchLower) &&
-        !submission.email.toLowerCase().includes(searchLower) &&
-        !(submission.location && submission.location.toLowerCase().includes(searchLower)) &&
-        !(submission.description && submission.description.toLowerCase().includes(searchLower))) {
-      return false;
-    }
-    
-    // Date range filtering
-    if (filters.dateRange !== 'all') {
-      const submissionDate = new Date(submission.submittedAt);
-      const dateFilter = dateFilters[filters.dateRange];
-      if (dateFilter && !dateFilter.filter(submissionDate)) {
-        return false;
-      }
-    }
-    
-    // Own recording filtering
-    if (filters.ownRecording !== null && submission.isOwnRecording !== filters.ownRecording) {
-      return false;
-    }
-    
-    // Want credit filtering
-    if (filters.wantCredit !== null && submission.wantCredit !== filters.wantCredit) {
-      return false;
-    }
-    
-    // PayPal email filtering
-    if (filters.hasPaypalEmail !== null) {
-      const hasPaypal = !!submission.paypalEmail;
-      if (hasPaypal !== filters.hasPaypalEmail) {
-        return false;
-      }
-    }
-    
-    // Status filtering
-    if (filters.status !== 'all' && submission.status !== filters.status) {
-      return false;
-    }
-    
-    return true;
-  });
-};
+interface DateRange {
+  from: Date | undefined;
+  to: Date | undefined;
+}
 
-// Add the useFilterService hook that was missing
-export const useFilterService = (allSubmissions: SubmissionData[]) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
-  const [filterOptions, setFilterOptions] = useState({
-    ownRecording: false,
-    wantCredit: false,
-    missingPaypal: false,
+export const useFilterService = (submissions: SubmissionData[], refreshKey = 0) => {
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     pending: true,
     approved: true,
-    rejected: true
+    rejected: true,
+    ownRecording: false,
+    wantCredit: false,
+    missingPaypal: false
   });
-
-  // Filter submissions based on search term and other filters
-  const filteredSubmissions = useMemo(() => {
-    // Convert date range to string filter
-    let dateRangeFilter = 'all';
-    if (dateRange.from && dateRange.to) {
-      // Custom date range logic
-      const customDateFilter = (date: Date) => {
-        const submissionDate = new Date(date);
-        return submissionDate >= dateRange.from! && submissionDate <= dateRange.to!;
-      };
+  
+  const [filteredSubmissions, setFilteredSubmissions] = useState<SubmissionData[]>(submissions);
+  
+  // Apply filters whenever filter options, search term, or date range changes
+  // Also reapply when the refreshKey changes (meaning new data is available)
+  useEffect(() => {
+    let results = [...submissions];
+    
+    // Filter by status if not all statuses are selected
+    if (!(filterOptions.pending && filterOptions.approved && filterOptions.rejected)) {
+      results = results.filter(submission => 
+        (filterOptions.pending && submission.status === 'pending') ||
+        (filterOptions.approved && submission.status === 'approved') ||
+        (filterOptions.rejected && submission.status === 'rejected')
+      );
+    }
+    
+    // Filter by recording ownership
+    if (filterOptions.ownRecording) {
+      results = results.filter(submission => submission.isOwnRecording === true);
+    }
+    
+    // Filter by credit requirements
+    if (filterOptions.wantCredit) {
+      results = results.filter(submission => submission.wantCredit === true);
+    }
+    
+    // Filter by missing PayPal email
+    if (filterOptions.missingPaypal) {
+      results = results.filter(submission => 
+        !submission.paypalEmail || submission.paypalEmail.trim() === ""
+      );
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      results = results.filter(submission => 
+        submission.firstName.toLowerCase().includes(term) ||
+        submission.lastName.toLowerCase().includes(term) ||
+        submission.email.toLowerCase().includes(term) ||
+        (submission.location && submission.location.toLowerCase().includes(term))
+      );
+    }
+    
+    // Filter by date range
+    if (dateRange.from) {
+      const fromDate = new Date(dateRange.from);
+      fromDate.setHours(0, 0, 0, 0);
       
-      // We'll use our custom filter instead of predefined ones
-      dateRangeFilter = 'custom';
-    } else if (dateRange.from && !dateRange.to) {
-      // Single date selection
-      dateRangeFilter = 'custom';
-    }
-
-    // Apply status filters
-    const statusFilters = [];
-    if (filterOptions.pending) statusFilters.push('pending');
-    if (filterOptions.approved) statusFilters.push('approved');
-    if (filterOptions.rejected) statusFilters.push('rejected');
-
-    let filteredByStatus = allSubmissions;
-    if (statusFilters.length > 0 && statusFilters.length < 3) {
-      filteredByStatus = allSubmissions.filter(sub => statusFilters.includes(sub.status));
-    }
-
-    // Apply other filters using the existing filterSubmissions function
-    return filterSubmissions(
-      filteredByStatus,
-      searchTerm,
-      {
-        dateRange: dateRangeFilter,
-        ownRecording: filterOptions.ownRecording ? true : null,
-        wantCredit: filterOptions.wantCredit ? true : null,
-        hasPaypalEmail: filterOptions.missingPaypal ? false : null,
-        status: 'all' // We already filtered by status above
+      results = results.filter(submission => {
+        const submittedDate = new Date(submission.submittedAt);
+        return submittedDate >= fromDate;
+      });
+      
+      if (dateRange.to) {
+        const toDate = new Date(dateRange.to);
+        toDate.setHours(23, 59, 59, 999);
+        
+        results = results.filter(submission => {
+          const submittedDate = new Date(submission.submittedAt);
+          return submittedDate <= toDate;
+        });
       }
-    );
-  }, [allSubmissions, searchTerm, dateRange, filterOptions]);
-
-  // Export CSV function
-  const exportToCSV = useCallback(() => {
-    if (filteredSubmissions.length === 0) return;
+    }
     
-    const headers = [
-      'First Name', 'Last Name', 'Email', 'Location', 'Submitted At', 
-      'Status', 'Is Own Recording', 'Want Credit', 'Has PayPal'
-    ].join(',');
-    
-    const rows = filteredSubmissions.map(sub => [
-      `"${sub.firstName}"`,
-      `"${sub.lastName}"`,
-      `"${sub.email}"`,
-      `"${sub.location || ''}"`,
-      `"${sub.submittedAt}"`,
-      `"${sub.status}"`,
-      sub.isOwnRecording ? 'Yes' : 'No',
-      sub.wantCredit ? 'Yes' : 'No',
-      sub.paypalEmail ? 'Yes' : 'No'
-    ].join(','));
-    
-    const csvContent = [headers, ...rows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `submissions-export-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [filteredSubmissions]);
+    setFilteredSubmissions(results);
+  }, [submissions, searchTerm, dateRange, filterOptions, refreshKey]);
   
-  // Export JSON function
-  const exportToJSON = useCallback(() => {
-    if (filteredSubmissions.length === 0) return;
-    
-    const data = JSON.stringify(filteredSubmissions, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `submissions-export-${new Date().toISOString().split('T')[0]}.json`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [filteredSubmissions]);
-  
-  // Reset filters
+  // Reset all filters to default values
   const resetFilters = () => {
     setSearchTerm('');
-    setDateRange({});
+    setDateRange({ from: undefined, to: undefined });
     setFilterOptions({
-      ownRecording: false,
-      wantCredit: false,
-      missingPaypal: false,
       pending: true,
       approved: true,
-      rejected: true
+      rejected: true,
+      ownRecording: false,
+      wantCredit: false,
+      missingPaypal: false
     });
+  };
+  
+  // Export to CSV format
+  const exportToCSV = () => {
+    // Format the filtered submissions for CSV export
+    const headers = [
+      'ID', 'First Name', 'Last Name', 'Email', 'Location', 
+      'Submitted At', 'Status', 'Is Own Recording', 'Want Credit'
+    ];
+    
+    const csvData = filteredSubmissions.map(sub => [
+      sub.id,
+      sub.firstName,
+      sub.lastName,
+      sub.email,
+      sub.location || '',
+      sub.submittedAt,
+      sub.status,
+      sub.isOwnRecording ? 'Yes' : 'No',
+      sub.wantCredit ? 'Yes' : 'No'
+    ]);
+    
+    // Convert to CSV string
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => row.join(','))
+    ].join('\n');
+    
+    // Create download link
+    downloadFile(csvContent, 'submissions.csv', 'text/csv');
+  };
+  
+  // Export to JSON format
+  const exportToJSON = () => {
+    const jsonData = JSON.stringify(filteredSubmissions, null, 2);
+    downloadFile(jsonData, 'submissions.json', 'application/json');
+  };
+  
+  // Helper function to download file
+  const downloadFile = (content: string, fileName: string, contentType: string) => {
+    const blob = new Blob([content], { type: contentType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
   
   return {

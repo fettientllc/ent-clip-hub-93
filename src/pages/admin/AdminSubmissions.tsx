@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useAdminService, SubmissionData } from '@/services/adminService';
@@ -19,7 +18,8 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +62,7 @@ const AdminSubmissions: React.FC = () => {
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0); // Add a refresh key state
   const [confirmationDialog, setConfirmationDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -74,8 +75,25 @@ const AdminSubmissions: React.FC = () => {
     action: () => {},
   });
   
+  // Add effect to refresh data on mount
+  useEffect(() => {
+    // Initial data fetch
+    refreshData();
+    
+    // Set up auto-refresh every 30 seconds
+    const refreshInterval = setInterval(refreshData, 30000);
+    
+    // Clean up the interval when component unmounts
+    return () => clearInterval(refreshInterval);
+  }, []);
+  
   // Get all submissions
   const allSubmissions = getSubmissions();
+  
+  // Function to manually refresh data
+  const refreshData = () => {
+    setRefreshKey(prev => prev + 1); // Increment refresh key to force re-render
+  };
   
   // Filtering functionality
   const { 
@@ -89,8 +107,8 @@ const AdminSubmissions: React.FC = () => {
     resetFilters,
     exportToCSV,
     exportToJSON
-  } = useFilterService(allSubmissions);
-
+  } = useFilterService(allSubmissions, refreshKey); // Pass the refresh key to filtering service
+  
   // Memoize current tab count
   const submissionCounts = useMemo(() => {
     return {
@@ -476,6 +494,15 @@ const AdminSubmissions: React.FC = () => {
         <h1 className="text-2xl font-bold">Video Submissions</h1>
         
         <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            onClick={refreshData}
+            className="flex items-center space-x-1"
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            <span>Refresh</span>
+          </Button>
+          
           <Button
             variant={isFilterPanelOpen ? "default" : "outline"}
             onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
