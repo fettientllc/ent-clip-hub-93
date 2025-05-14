@@ -1,13 +1,16 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
-import { Video, Upload, Info, Wifi, FileWarning, CheckCircle } from 'lucide-react';
+import { Video, Upload, Info, Wifi, FileWarning, CheckCircle, HelpCircle } from 'lucide-react';
 import { SubmitFormValues } from '@/hooks/useSubmitForm';
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useCloudinaryService } from '@/services/cloudinaryService';
 
 interface VideoUploadSectionProps {
   form: UseFormReturn<SubmitFormValues>;
@@ -32,6 +35,8 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'complete' | 'error'>('idle');
+  const [showTroubleshootDialog, setShowTroubleshootDialog] = useState(false);
+  const cloudinaryService = useCloudinaryService();
 
   const videoFile = form.watch('video') as File | undefined;
   const cloudinaryFileId = form.watch('cloudinaryFileId');
@@ -92,6 +97,23 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
 
   const hasError = (showError && !!form.formState.errors.video);
 
+  // Check Cloudinary configuration
+  const checkCloudinaryConfig = async () => {
+    const result = await cloudinaryService.checkCloudinaryConfig();
+    if (result) {
+      toast({
+        title: "Cloudinary connection verified",
+        description: "Your connection to Cloudinary is working properly.",
+      });
+    } else {
+      toast({
+        title: "Cloudinary connection issue",
+        description: "Could not verify Cloudinary connection. This may cause upload problems.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Guidelines component inside the upload section
   const VideoGuidelines = () => (
     <div className="mt-4 text-sm text-gray-600">
@@ -137,6 +159,70 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
     return sizeInMB.toFixed(1) + " MB";
   };
 
+  // Troubleshooting Dialog
+  const TroubleshootingDialog = () => (
+    <Dialog open={showTroubleshootDialog} onOpenChange={setShowTroubleshootDialog}>
+      <DialogTrigger asChild>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex items-center gap-1 mt-2"
+          onClick={() => setShowTroubleshootDialog(true)}
+        >
+          <HelpCircle className="h-4 w-4" /> Troubleshoot Upload Issues
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Upload Troubleshooting</DialogTitle>
+          <DialogDescription>
+            If you're having trouble uploading videos, try these steps:
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 mt-4">
+          <div className="space-y-2">
+            <h3 className="font-medium">Connection Test</h3>
+            <p className="text-sm text-gray-600">
+              First, let's check if we can connect to Cloudinary:
+            </p>
+            <Button 
+              size="sm" 
+              onClick={checkCloudinaryConfig}
+              className="flex items-center gap-2"
+            >
+              <Wifi className="h-4 w-4" /> Test Cloudinary Connection
+            </Button>
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="font-medium">Common Issues</h3>
+            <ul className="text-sm text-gray-600 space-y-1 list-disc pl-5">
+              <li>Make sure you have a stable internet connection</li>
+              <li>Try using a smaller video file (under 100MB if possible)</li>
+              <li>Try a different web browser (Chrome or Firefox recommended)</li>
+              <li>Disable any VPN or proxy services that might be active</li>
+              <li>Clear your browser cache and cookies</li>
+            </ul>
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="font-medium">Still Having Issues?</h3>
+            <p className="text-sm text-gray-600">
+              If you're still experiencing problems, please contact support with the following details:
+            </p>
+            <ul className="text-sm text-gray-600 space-y-1 list-disc pl-5">
+              <li>Your browser name and version</li>
+              <li>Your device type (desktop/mobile)</li>
+              <li>The size and format of the video you're trying to upload</li>
+              <li>Any error messages you see in the browser console (if available)</li>
+            </ul>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <FormField
       control={form.control}
@@ -174,15 +260,19 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                         <FileWarning className="h-4 w-4 text-red-600" />
                         <AlertDescription className="text-sm">
                           Upload failed or incomplete. Please try again.
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm"
-                            onClick={retryUpload}
-                            className="mt-2 flex items-center gap-1 text-xs"
-                          >
-                            <Wifi className="h-3 w-3" /> Retry Upload
-                          </Button>
+                          <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm"
+                              onClick={retryUpload}
+                              className="flex items-center gap-1 text-xs"
+                            >
+                              <Wifi className="h-3 w-3" /> Retry Upload
+                            </Button>
+                            
+                            <TroubleshootingDialog />
+                          </div>
                         </AlertDescription>
                       </Alert>
                     </div>
@@ -247,6 +337,13 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
             </div>
           </FormControl>
           <FormMessage className="text-red-500" />
+          
+          {/* Add troubleshooting button outside of the form control when no file is selected */}
+          {!videoFileName && (
+            <div className="flex justify-center mt-2">
+              <TroubleshootingDialog />
+            </div>
+          )}
         </FormItem>
       )}
     />

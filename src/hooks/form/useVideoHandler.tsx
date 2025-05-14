@@ -11,7 +11,7 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
-  const { uploadVideo } = useCloudinaryService();
+  const { uploadVideo, checkCloudinaryConfig } = useCloudinaryService();
 
   // Function to handle video upload to Cloudinary
   const uploadToCloudinary = async (file: File) => {
@@ -21,6 +21,12 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
     setUploadProgress(0);
     
     try {
+      // Check Cloudinary configuration before upload
+      const configCheck = await checkCloudinaryConfig();
+      if (!configCheck) {
+        console.warn("Cloudinary configuration check failed, but proceeding with upload attempt");
+      }
+      
       // Upload the file to Cloudinary
       const result = await uploadVideo(file, (progress) => {
         setUploadProgress(progress);
@@ -69,7 +75,7 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
         console.error("Upload failed:", result.error);
         form.setError("video", {
           type: "manual",
-          message: "Video upload failed. Please try again.",
+          message: result.error || "Video upload failed. Please try again.",
         });
         
         // Clear Cloudinary values if upload failed
@@ -87,7 +93,7 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
       console.error("Upload error:", error);
       form.setError("video", {
         type: "manual",
-        message: "Video upload error. Please try again.",
+        message: error instanceof Error ? error.message : "Video upload error. Please try again.",
       });
       
       // Clear Cloudinary values if upload failed
@@ -184,6 +190,7 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
     handleVideoChange,
     isUploading,
     uploadProgress,
-    uploadToCloudinary // Expose this so we can call it from onSubmit if needed
+    uploadToCloudinary, // Expose this so we can call it from onSubmit if needed
+    verifyCloudinaryConfig: checkCloudinaryConfig
   };
 }

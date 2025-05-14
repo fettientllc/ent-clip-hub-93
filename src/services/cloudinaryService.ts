@@ -43,7 +43,7 @@ export const useCloudinaryService = () => {
   // Default upload preset - this is crucial for unsigned uploads
   const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'ml_default';
   
-  // Direct unsigned upload to Cloudinary - most reliable method for our use case
+  // Direct unsigned upload to Cloudinary - enhanced with better error handling
   const directUpload = async (
     file: File, 
     onProgress?: (progress: number) => void
@@ -53,6 +53,58 @@ export const useCloudinaryService = () => {
     formData.append('upload_preset', uploadPreset);
     formData.append('resource_type', 'auto'); // Let Cloudinary detect file type
 
+    // Log upload attempt with detailed information
+    console.log('Starting Cloudinary upload:', {
+      cloudName,
+      uploadPreset,
+      fileName: file.name,
+      fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+      fileType: file.type,
+      uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`
+    });
+
+    // First try using the fetch API as a fallback in case XMLHttpRequest has issues
+    try {
+      // Create a controller to handle timeouts
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      // Check if fetch was successful
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Cloudinary fetch upload successful:', result);
+        
+        if (result.public_id) {
+          return {
+            success: true,
+            fileId: result.public_id,
+            url: result.secure_url,
+            publicId: result.public_id
+          };
+        } else {
+          console.error('Fetch upload successful but no public ID returned', result);
+          throw new Error('Upload successful but no public ID returned');
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('Cloudinary fetch upload failed:', response.status, errorText);
+        throw new Error(`HTTP error: ${response.status} - ${errorText}`);
+      }
+    } catch (fetchError) {
+      // If fetch fails, log the error and try XMLHttpRequest
+      console.warn('Fetch API upload failed, trying XHR fallback:', fetchError);
+      
+      // Don't throw yet, try the XMLHttpRequest approach
+    }
+
     return new Promise((resolve) => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`);
@@ -60,11 +112,15 @@ export const useCloudinaryService = () => {
       // Set 30 minute timeout for large files (increased from 10 minutes)
       xhr.timeout = 1800000; 
       
+      // Add additional headers that might help with CORS
+      xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      
       // Handle progress events
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable && onProgress) {
           const progress = Math.round((event.loaded / event.total) * 100);
           onProgress(progress);
+          console.log(`Upload progress: ${progress}%`);
         }
       };
       
@@ -73,6 +129,8 @@ export const useCloudinaryService = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
             const response = JSON.parse(xhr.responseText);
+            console.log('Full Cloudinary response:', response);
+            
             if (response.public_id) {
               console.log('Cloudinary upload successful:', response.public_id);
               resolve({
@@ -89,7 +147,7 @@ export const useCloudinaryService = () => {
               });
             }
           } catch (e) {
-            console.error('Failed to parse server response', e);
+            console.error('Failed to parse server response', e, 'Raw response:', xhr.responseText);
             resolve({
               success: false,
               error: 'Failed to parse server response'
@@ -99,12 +157,13 @@ export const useCloudinaryService = () => {
           let errorMessage = 'Upload failed';
           try {
             const errorResponse = JSON.parse(xhr.responseText);
-            errorMessage = errorResponse.error?.message || 'Unknown error occurred';
-            console.error('Upload error response:', errorResponse);
+            errorMessage = errorResponse.error?.message || `HTTP error: ${xhr.status}`;
+            console.error('Upload error response:', errorResponse, 'Status:', xhr.status);
           } catch (e) {
-            errorMessage = `HTTP error: ${xhr.status}`;
+            errorMessage = `HTTP error: ${xhr.status} - ${xhr.statusText}`;
+            console.error('Upload failed with status:', xhr.status, xhr.statusText);
+            console.error('Raw response:', xhr.responseText);
           }
-          console.error("Upload failed:", errorMessage);
           resolve({
             success: false,
             error: errorMessage
@@ -112,24 +171,43 @@ export const useCloudinaryService = () => {
         }
       };
       
-      // Handle errors
-      xhr.onerror = () => {
-        console.error("Network error in upload");
+      // Enhanced error handling
+      xhr.onerror = (e) => {
+        console.error("Network error in upload", e);
+        
+        // Check if it might be a CORS issue
+        let errorMessage = 'Network connection error. Please check your internet connection and try again.';
+        
+        // Try to detect if this is a CORS issue
+        if (xhr.status === 0) {
+          errorMessage = 'CORS error: The server is blocking the request. This is usually due to incorrect CORS configuration.';
+          console.error("Possible CORS issue detected");
+        }
+        
         resolve({
           success: false,
-          error: 'Network connection error. Please check your internet connection and try again.'
+          error: errorMessage
         });
       };
       
       xhr.ontimeout = () => {
-        console.error("Upload timeout");
+        console.error("Upload timeout after", (xhr.timeout / 1000), "seconds");
         resolve({
           success: false,
           error: 'Upload timed out. Your file may be too large for your current internet connection.'
         });
       };
       
-      console.log('Uploading to Cloudinary:', {
+      // Additional error detection
+      xhr.onabort = () => {
+        console.error("Upload aborted");
+        resolve({
+          success: false,
+          error: 'Upload was aborted.'
+        });
+      };
+      
+      console.log('Starting XHR upload to Cloudinary:', {
         cloudName,
         uploadPreset,
         fileName: file.name,
@@ -140,11 +218,38 @@ export const useCloudinaryService = () => {
     });
   };
   
+  // Try to fetch Cloudinary preset details to verify configuration
+  const checkCloudinaryConfig = async (): Promise<boolean> => {
+    try {
+      // This is a simple way to check if the Cloudinary configuration works
+      // by fetching a small test image
+      const testUrl = `https://res.cloudinary.com/${cloudName}/image/upload/c_scale,w_1/sample`;
+      const response = await fetch(testUrl, { method: 'HEAD' });
+      
+      if (response.ok) {
+        console.log("Cloudinary configuration verified successfully");
+        return true;
+      } else {
+        console.error("Cloudinary configuration check failed:", response.status, response.statusText);
+        return false;
+      }
+    } catch (error) {
+      console.error("Failed to verify Cloudinary configuration:", error);
+      return false;
+    }
+  };
+  
   const uploadVideo = async (
     file: File, 
     onProgress?: (progress: number) => void
   ): Promise<CloudinaryUploadResult> => {
     try {
+      // Verify Cloudinary configuration first
+      const configValid = await checkCloudinaryConfig();
+      if (!configValid) {
+        console.warn("Cloudinary configuration check failed, attempting upload anyway");
+      }
+      
       // For very large files, just provide information without suggesting compression
       if (file.size > 500 * 1024 * 1024) {
         console.log("Large file detected:", Math.round(file.size / 1024 / 1024) + "MB");
@@ -201,6 +306,7 @@ export const useCloudinaryService = () => {
   
   return {
     uploadVideo,
-    getVideoUrl
+    getVideoUrl,
+    checkCloudinaryConfig
   };
 };
