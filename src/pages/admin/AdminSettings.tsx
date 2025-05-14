@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -19,7 +18,7 @@ const AdminSettings: React.FC = () => {
     autoAdd: true,
     emailTemplate: 'Thank you for your submission! We will review your video shortly.',
     cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dlqi9c0qt',
-    uploadPreset: 'video_submissions'
+    uploadPreset: 'ml_default'  // Updated to use ml_default
   });
 
   const handleChange = (field: string, value: string | boolean) => {
@@ -74,7 +73,7 @@ const AdminSettings: React.FC = () => {
                 onChange={(e) => handleChange('uploadPreset', e.target.value)}
               />
               <p className="text-sm text-muted-foreground">
-                Unsigned upload preset (create this in your Cloudinary dashboard)
+                Upload preset (default: ml_default) - Create custom presets in your Cloudinary dashboard
               </p>
             </div>
             

@@ -1,5 +1,5 @@
 
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 interface CloudinaryUploadResponse {
   asset_id?: string;
@@ -38,20 +38,21 @@ interface CloudinaryUploadResult {
 export const useCloudinaryService = () => {
   const { toast } = useToast();
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dlqi9c0qt';
+  const apiKey = import.meta.env.VITE_CLOUDINARY_API_KEY || '367216336812145';
   
   const uploadVideo = async (
     file: File, 
     onProgress?: (progress: number) => void
   ): Promise<CloudinaryUploadResult> => {
     try {
-      // For security reasons, we should use a server-side approach
-      // But for demo purposes, we'll use an unsigned upload
-      const uploadPreset = 'video_submissions'; // Create this in your Cloudinary dashboard
+      // Using unsigned upload with a preset
+      const uploadPreset = 'ml_default'; // Using ml_default which is a default preset in Cloudinary
       
       // Create a FormData object to send the file
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', uploadPreset);
+      formData.append('api_key', apiKey);
       formData.append('resource_type', 'video');
       
       // Track upload progress
@@ -118,6 +119,14 @@ export const useCloudinaryService = () => {
             error: 'Upload timed out'
           });
         };
+        
+        // Add debugging information
+        console.log('Uploading to Cloudinary:', {
+          cloudName,
+          uploadPreset,
+          fileName: file.name,
+          fileSize: file.size
+        });
         
         // Send the formData object
         xhr.send(formData);
