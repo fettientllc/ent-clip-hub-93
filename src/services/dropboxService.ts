@@ -1,3 +1,4 @@
+
 import { useToast } from "@/hooks/use-toast";
 
 // Dropbox API credentials - these will be replaced with env variables
@@ -195,6 +196,9 @@ export const useDropboxService = () => {
       // File path in Dropbox
       const path = `${folderPath}/${fileName}`;
       
+      // Get a fresh access token
+      const accessToken = await getAccessToken();
+      
       // Use the XMLHttpRequest to upload the text data
       const xhr = new XMLHttpRequest();
       
@@ -202,8 +206,8 @@ export const useDropboxService = () => {
       return new Promise((resolve) => {
         xhr.open("POST", `${DROPBOX_API_URL}/files/upload`, true);
         
-        // Set Dropbox headers
-        xhr.setRequestHeader("Authorization", `Bearer ${DROPBOX_ACCESS_TOKEN}`);
+        // Set Dropbox headers with the fresh access token
+        xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
         xhr.setRequestHeader("Content-Type", "application/octet-stream");
         xhr.setRequestHeader(
           "Dropbox-API-Arg",
