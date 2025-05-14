@@ -2,11 +2,23 @@
 import { createClient } from '@supabase/supabase-js';
 import { useToast } from "@/hooks/use-toast";
 
-// Supabase client initialization - replace with your actual values from env variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'your-supabase-url';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-supabase-anon-key';
+// Supabase client initialization - properly handle environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Make sure we have valid values before creating the client
+if (!supabaseUrl || supabaseUrl === 'your-supabase-url') {
+  console.error('Missing or invalid VITE_SUPABASE_URL environment variable');
+}
+
+if (!supabaseKey || supabaseKey === 'your-supabase-anon-key') {
+  console.error('Missing or invalid VITE_SUPABASE_ANON_KEY environment variable');
+}
+
+// Create client only if we have valid configuration
+export const supabase = supabaseUrl && supabaseKey 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
 
 // This represents a submission in the Supabase database
 export interface SubmissionRecord {
@@ -36,10 +48,27 @@ export interface SubmissionRecord {
 export const useSupabaseService = () => {
   const { toast } = useToast();
 
+  // Helper function to check if Supabase client is initialized
+  const checkSupabase = () => {
+    if (!supabase) {
+      const errorMsg = 'Supabase client is not initialized. Please check your environment variables.';
+      console.error(errorMsg);
+      toast({
+        title: 'Configuration Error',
+        description: errorMsg,
+        variant: 'destructive',
+      });
+      return false;
+    }
+    return true;
+  };
+
   /**
    * Create a folder structure in Supabase Storage
    */
   const createStorageFolder = async (firstName: string, lastName: string): Promise<string> => {
+    if (!checkSupabase()) return '';
+    
     // Folder path format: /{firstName}_{lastName}/submission/
     const folderPath = `${firstName}_${lastName}/submission`;
     
@@ -56,6 +85,8 @@ export const useSupabaseService = () => {
     folderPath: string,
     fileName?: string
   ): Promise<{ path: string; url: string } | null> => {
+    if (!checkSupabase()) return null;
+    
     try {
       // Use the provided fileName or the original file name
       const finalFileName = fileName || file.name;
@@ -64,7 +95,7 @@ export const useSupabaseService = () => {
       const filePath = `${folderPath}/${finalFileName}`;
       
       // Upload the file to Supabase Storage
-      const { data, error } = await supabase.storage
+      const { data, error } = await supabase!.storage
         .from('submissions') // Replace with your actual bucket name
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -82,7 +113,7 @@ export const useSupabaseService = () => {
       }
       
       // Generate a public URL for the uploaded file
-      const { data: publicUrlData } = supabase.storage
+      const { data: publicUrlData } = supabase!.storage
         .from('submissions')
         .getPublicUrl(data?.path || filePath);
       
@@ -105,8 +136,10 @@ export const useSupabaseService = () => {
    * Save a submission to the Supabase database
    */
   const saveSubmission = async (submission: SubmissionRecord): Promise<string | null> => {
+    if (!checkSupabase()) return null;
+    
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('submissions')
         .insert(submission)
         .select('id')
@@ -138,8 +171,10 @@ export const useSupabaseService = () => {
    * Get all submissions from the database
    */
   const getSubmissions = async (): Promise<SubmissionRecord[]> => {
+    if (!checkSupabase()) return [];
+    
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('submissions')
         .select('*')
         .order('submittedAt', { ascending: false });
@@ -170,9 +205,11 @@ export const useSupabaseService = () => {
    * Approve a submission and move its video to the "Approved Videos" folder in Dropbox
    */
   const approveSubmission = async (id: string): Promise<boolean> => {
+    if (!checkSupabase()) return false;
+    
     try {
       // First, update the submission status in the database
-      const { data: submission, error: fetchError } = await supabase
+      const { data: submission, error: fetchError } = await supabase!
         .from('submissions')
         .select('*')
         .eq('id', id)
@@ -184,7 +221,7 @@ export const useSupabaseService = () => {
       }
       
       // Update the status in the database
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabase!
         .from('submissions')
         .update({ status: 'approved' })
         .eq('id', id);
@@ -207,8 +244,10 @@ export const useSupabaseService = () => {
    * Reject a submission
    */
   const rejectSubmission = async (id: string, reason?: string): Promise<boolean> => {
+    if (!checkSupabase()) return false;
+    
     try {
-      const { error } = await supabase
+      const { error } = await supabase!
         .from('submissions')
         .update({ 
           status: 'rejected',
@@ -232,6 +271,8 @@ export const useSupabaseService = () => {
    * Send confirmation email to user after submission
    */
   const sendConfirmationEmail = async (email: string, firstName: string, lastName: string): Promise<boolean> => {
+    if (!checkSupabase()) return false;
+    
     try {
       // This would typically call a Supabase Edge Function to send emails
       // For demonstration, we'll log it

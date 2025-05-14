@@ -99,6 +99,12 @@ export const useSubmissionWorkflowService = () => {
    */
   const moveToApprovedFolder = async (submissionId: string): Promise<boolean> => {
     try {
+      // Check if Supabase client is available
+      if (!supabase) {
+        console.error('Supabase client is not initialized');
+        return false;
+      }
+      
       // Get the submission details from Supabase
       const { data: submission, error } = await supabase
         .from('submissions')

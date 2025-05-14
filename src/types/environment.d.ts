@@ -9,6 +9,8 @@ declare global {
       VITE_CLOUDINARY_API_KEY?: string;
       VITE_CLOUDINARY_API_SECRET?: string;
       VITE_CLOUDINARY_UPLOAD_PRESET?: string;
+      VITE_SUPABASE_URL?: string;
+      VITE_SUPABASE_ANON_KEY?: string;
     }
   }
 }
