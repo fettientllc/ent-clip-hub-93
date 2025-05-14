@@ -8,6 +8,7 @@ declare global {
       VITE_CLOUDINARY_CLOUD_NAME?: string;
       VITE_CLOUDINARY_API_KEY?: string;
       VITE_CLOUDINARY_API_SECRET?: string;
+      VITE_CLOUDINARY_UPLOAD_PRESET?: string;
     }
   }
 }

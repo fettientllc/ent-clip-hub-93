@@ -41,23 +41,24 @@ export const useCloudinaryService = () => {
   const apiKey = import.meta.env.VITE_CLOUDINARY_API_KEY || '367216336812145';
   
   // Default upload preset - this is crucial for unsigned uploads
-  const uploadPreset = 'ml_default';
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'ml_default';
   
-  // Direct upload without using presets (most reliable method)
+  // Direct unsigned upload to Cloudinary - most reliable method for our use case
   const directUpload = async (
     file: File, 
     onProgress?: (progress: number) => void
   ): Promise<CloudinaryUploadResult> => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('resource_type', 'video');
-    
+    formData.append('upload_preset', uploadPreset);
+    formData.append('resource_type', 'auto'); // Let Cloudinary detect file type
+
     return new Promise((resolve) => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`);
       
-      // Set appropriate timeout for large files (5 minutes)
-      xhr.timeout = 300000; 
+      // Set 10 minute timeout for large files
+      xhr.timeout = 600000; 
       
       // Handle progress events
       xhr.upload.onprogress = (event) => {
@@ -73,6 +74,7 @@ export const useCloudinaryService = () => {
           try {
             const response = JSON.parse(xhr.responseText);
             if (response.public_id) {
+              console.log('Cloudinary upload successful:', response.public_id);
               resolve({
                 success: true,
                 fileId: response.public_id,
@@ -80,12 +82,14 @@ export const useCloudinaryService = () => {
                 publicId: response.public_id
               });
             } else {
+              console.error('Upload successful but no public ID returned', response);
               resolve({
                 success: false,
                 error: 'Upload successful but no public ID returned'
               });
             }
           } catch (e) {
+            console.error('Failed to parse server response', e);
             resolve({
               success: false,
               error: 'Failed to parse server response'
@@ -96,10 +100,11 @@ export const useCloudinaryService = () => {
           try {
             const errorResponse = JSON.parse(xhr.responseText);
             errorMessage = errorResponse.error?.message || 'Unknown error occurred';
+            console.error('Upload error response:', errorResponse);
           } catch (e) {
             errorMessage = `HTTP error: ${xhr.status}`;
           }
-          console.error("Direct upload failed:", errorMessage);
+          console.error("Upload failed:", errorMessage);
           resolve({
             success: false,
             error: errorMessage
@@ -109,7 +114,7 @@ export const useCloudinaryService = () => {
       
       // Handle errors
       xhr.onerror = () => {
-        console.error("Network error in direct upload");
+        console.error("Network error in upload");
         resolve({
           success: false,
           error: 'Network connection error. Please check your internet connection and try again.'
@@ -124,8 +129,9 @@ export const useCloudinaryService = () => {
         });
       };
       
-      console.log('Trying direct Cloudinary upload:', {
+      console.log('Uploading to Cloudinary:', {
         cloudName,
+        uploadPreset,
         fileName: file.name,
         fileSize: file.size
       });
@@ -139,130 +145,47 @@ export const useCloudinaryService = () => {
     onProgress?: (progress: number) => void
   ): Promise<CloudinaryUploadResult> => {
     try {
-      // For very large files (over 40MB), suggest compression first
+      // For very large files, suggest compression
       if (file.size > 40 * 1024 * 1024) {
-        console.log("Large file detected, consider compression");
+        console.log("Large file detected:", Math.round(file.size / 1024 / 1024) + "MB");
         toast({
           title: "Large file detected",
-          description: "Files over 40MB may fail to upload. Consider compressing your video first.",
+          description: `This ${Math.round(file.size / 1024 / 1024)}MB file may take longer to upload. For best results, consider compressing videos over 40MB.`,
           duration: 8000,
         });
       }
       
-      // Show upload starting toast for better UX
       toast({
         title: "Upload started",
         description: "Your video is being uploaded. Please don't close the page.",
         duration: 3000,
       });
       
-      // Try direct upload first as it's most reliable
+      // Try direct upload with preset
       const result = await directUpload(file, onProgress);
       
-      // If direct upload succeeded, return the result
+      // If successful, return result
       if (result.success) {
+        toast({
+          title: "Upload complete",
+          description: "Your video has been uploaded successfully.",
+          duration: 3000,
+        });
         return result;
-      }
-      
-      // If direct upload failed, try with preset method
-      console.log("Direct upload failed, trying preset method");
-      
-      // Create a FormData object to send the file
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', uploadPreset);
-      formData.append('api_key', apiKey);
-      formData.append('resource_type', 'video');
-      
-      // Track upload progress
-      const xhr = new XMLHttpRequest();
-      
-      // Create a promise to handle the async upload
-      const uploadPromise = new Promise<CloudinaryUploadResult>((resolve) => {
-        xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/upload`);
+      } else {
+        // Log the error for debugging
+        console.error("Upload failed:", result.error);
         
-        // Set appropriate timeout for large files (5 minutes)
-        xhr.timeout = 300000;
-        
-        // Handle progress events
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable && onProgress) {
-            const progress = Math.round((event.loaded / event.total) * 100);
-            onProgress(progress);
-          }
-        };
-        
-        // Handle response
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const response: CloudinaryUploadResponse = JSON.parse(xhr.responseText);
-              
-              if (response.public_id) {
-                resolve({
-                  success: true,
-                  fileId: response.public_id,
-                  url: response.secure_url,
-                  publicId: response.public_id
-                });
-              } else {
-                resolve({
-                  success: false,
-                  error: 'Upload successful but no public ID returned'
-                });
-              }
-            } catch (e) {
-              resolve({
-                success: false,
-                error: 'Failed to parse server response'
-              });
-            }
-          } else {
-            let errorMessage = 'Upload failed';
-            try {
-              const errorResponse = JSON.parse(xhr.responseText);
-              errorMessage = errorResponse.error?.message || 'Unknown error occurred';
-            } catch (e) {
-              errorMessage = `HTTP error: ${xhr.status}`;
-            }
-            
-            console.error("Upload failed:", errorMessage);
-            resolve({
-              success: false,
-              error: errorMessage
-            });
-          }
-        };
-        
-        // Handle network errors
-        xhr.onerror = () => {
-          console.error("Network error during upload");
-          resolve({
-            success: false,
-            error: 'Network connection error. Please check your internet connection and try again.'
-          });
-        };
-        
-        // Handle timeout
-        xhr.ontimeout = () => {
-          resolve({
-            success: false,
-            error: 'Upload timed out. Try with a smaller file or check your internet connection.'
-          });
-        };
-        
-        console.log('Uploading to Cloudinary (preset method):', {
-          cloudName,
-          uploadPreset,
-          fileName: file.name,
-          fileSize: file.size
+        // Show error to user
+        toast({
+          title: "Upload failed",
+          description: result.error || "Failed to upload video. Please try again.",
+          variant: "destructive",
+          duration: 5000,
         });
         
-        // Send the formData object
-        xhr.send(formData);
-      });
-      
-      return uploadPromise;
+        return result;
+      }
     } catch (error) {
       console.error('Error in Cloudinary upload:', error);
       return {
@@ -273,7 +196,6 @@ export const useCloudinaryService = () => {
   };
   
   const getVideoUrl = (publicId: string): string => {
-    // Return the Cloudinary URL for the video
     return `https://res.cloudinary.com/${cloudName}/video/upload/${publicId}`;
   };
   

@@ -35,10 +35,9 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
   const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'complete' | 'error'>('idle');
 
   const videoFile = form.watch('video') as File | undefined;
-  const dropboxFileId = form.watch('dropboxFileId');
-  const dropboxFilePath = form.watch('dropboxFilePath');
   const cloudinaryFileId = form.watch('cloudinaryFileId');
-  const uploadComplete = !!cloudinaryFileId || !!dropboxFileId;
+  const cloudinaryUrl = form.watch('cloudinaryUrl');
+  const uploadComplete = !!cloudinaryFileId && !!cloudinaryUrl;
 
   // Create object URL for video preview when file changes
   useEffect(() => {
@@ -71,8 +70,6 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
   const clearVideo = () => {
     setVideoFileName(null);
     form.setValue('video', undefined as any, { shouldValidate: true });
-    form.setValue('dropboxFileId', undefined);
-    form.setValue('dropboxFilePath', undefined);
     form.setValue('cloudinaryFileId', undefined);
     form.setValue('cloudinaryUrl', undefined);
     form.setValue('cloudinaryPublicId', undefined);
@@ -126,7 +123,9 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
     if (videoFile instanceof File) {
       // Reset error state
       form.setValue('cloudinaryFileId', undefined);
+      form.setValue('cloudinaryUrl', undefined);
       form.setValue('video', undefined as any);
+      
       toast({
         title: "Retrying upload",
         description: "Attempting to upload your video again."
@@ -137,6 +136,12 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
         form.setValue('video', videoFile, { shouldValidate: true });
       }, 100);
     }
+  };
+
+  // Calculate file size display
+  const getFileSizeDisplay = (file: File) => {
+    const sizeInMB = file.size / (1024 * 1024);
+    return sizeInMB.toFixed(1) + " MB";
   };
 
   return (
@@ -152,7 +157,12 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                 <div className="flex flex-col items-center gap-3 w-full p-6">
                   <Video className="h-12 w-12 text-blue-600" />
                   
-                  <span className="text-sm text-gray-700 text-center font-medium">{videoFileName}</span>
+                  <span className="text-sm text-gray-700 text-center font-medium">
+                    {videoFileName}
+                    {videoFile && (
+                      <span className="ml-2 text-gray-500">({getFileSizeDisplay(videoFile)})</span>
+                    )}
+                  </span>
                   
                   {isUploading && (
                     <div className="w-full mt-2">
