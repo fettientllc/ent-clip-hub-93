@@ -1,7 +1,7 @@
-
 import { useDropboxService } from "./dropboxService";
 import { useToast } from "@/hooks/use-toast";
 import { useMailingListService } from "./mailingListService";
+import { useCloudinaryService } from "./cloudinaryService";
 
 export interface SubmissionData {
   id: string;
@@ -14,6 +14,7 @@ export interface SubmissionData {
   parentLastName?: string;
   parentEmail?: string;
   videoPath?: string;
+  videoUrl?: string; // Cloudinary URL
   tempVideoPath?: string; // For temporary storage before approval
   folderPath: string;
   signatureProvided: boolean;
@@ -27,6 +28,7 @@ export interface SubmissionData {
   paypalEmail?: string;
   adminNotes?: string;
   uploadedToDropbox?: boolean;
+  cloudinaryPublicId?: string; // Cloudinary public ID
 }
 
 // In-memory storage for demo purposes
@@ -40,13 +42,15 @@ const submissions: SubmissionData[] = [
     location: "New York, NY",
     folderPath: "/submissions/2023-05-14_John_Doe",
     tempVideoPath: "/temp/2023-05-14_John_Doe/video.mp4",
+    videoUrl: "https://res.cloudinary.com/dlqi9c0qt/video/upload/v1684054400/samples/sea-turtle.mp4",
     signatureProvided: true,
     submittedAt: "2025-05-12T15:30:00Z",
     status: 'pending',
     isOwnRecording: true,
     wantCredit: false,
     paypalEmail: "john@paypal.com",
-    uploadedToDropbox: false
+    uploadedToDropbox: false,
+    cloudinaryPublicId: "samples/sea-turtle"
   },
   {
     id: "sub-2",
@@ -57,6 +61,7 @@ const submissions: SubmissionData[] = [
     description: "Short clip of sunset at the beach",
     folderPath: "/submissions/2023-05-13_Jane_Smith",
     tempVideoPath: "/temp/2023-05-13_Jane_Smith/beach_sunset.mp4",
+    videoUrl: "https://res.cloudinary.com/dlqi9c0qt/video/upload/v1684054401/samples/elephants.mp4",
     signatureProvided: true,
     submittedAt: "2025-05-13T10:45:00Z",
     status: 'pending',
@@ -66,7 +71,8 @@ const submissions: SubmissionData[] = [
     creditPlatform: "Instagram",
     creditUsername: "@jane_captures",
     paypalEmail: "",
-    uploadedToDropbox: false
+    uploadedToDropbox: false,
+    cloudinaryPublicId: "samples/elephants"
   },
   {
     id: "sub-3",
@@ -76,12 +82,14 @@ const submissions: SubmissionData[] = [
     location: "Chicago, IL",
     folderPath: "/submissions/2023-05-14_Michael_Johnson",
     tempVideoPath: "/temp/2023-05-14_Michael_Johnson/city_timelapse.mp4",
+    videoUrl: "https://res.cloudinary.com/dlqi9c0qt/video/upload/v1684054402/samples/cld-sample-video.mp4",
     signatureProvided: false,
     submittedAt: "2025-05-14T09:20:00Z",
     status: 'pending',
     isOwnRecording: true,
     wantCredit: false,
-    uploadedToDropbox: false
+    uploadedToDropbox: false,
+    cloudinaryPublicId: "samples/cld-sample-video"
   }
 ];
 
@@ -111,6 +119,7 @@ export const useAdminService = () => {
   const { toast } = useToast();
   const { getMailingList } = useMailingListService();
   const dropboxService = useDropboxService();
+  const cloudinaryService = useCloudinaryService();
 
   const getSubmissions = (): SubmissionData[] => {
     return [...submissions];
@@ -146,7 +155,7 @@ export const useAdminService = () => {
     };
   };
 
-  // Upload to Dropbox after approval - implementing the proposed workflow
+  // Upload to Dropbox after approval
   const uploadToDropbox = async (submission: SubmissionData): Promise<boolean> => {
     try {
       console.log(`Uploading submission ${submission.id} to Dropbox...`);
@@ -159,11 +168,12 @@ export const useAdminService = () => {
         return false;
       }
       
-      /* In a real implementation with the proposed workflow, this would:
-         1. Get the file from temporary storage (AWS S3, Cloudinary, Firebase)
-         2. Upload it to the permanent Dropbox location
-         3. Delete it from the temporary storage to save space
-         4. Update submission records with the new permanent path
+      /* In a real implementation with the proposed workflow:
+         1. The video is already in Cloudinary (temporary storage)
+         2. After approval, we would:
+            a. Download the video from Cloudinary
+            b. Upload it to the permanent Dropbox location
+            c. Optionally delete it from Cloudinary if no longer needed
       */
       
       // Create a specific folder for this submission in the approved videos folder
@@ -175,21 +185,13 @@ export const useAdminService = () => {
         return false;
       }
       
-      // In a real implementation with the proposed workflow:
-      // 1. Get the temp video file from cloud storage
-      // const videoFile = await getVideoFromTemporaryStorage(submission.tempVideoPath);
-      // 2. Upload it to Dropbox
+      // In a production environment, you would:
+      // 1. Fetch the video from Cloudinary
+      // 2. Upload to Dropbox
+      // const videoFile = await fetchVideoFromCloudinary(submission.cloudinaryPublicId);
       // const uploadResult = await dropboxService.uploadFile(videoFile, submissionFolderPath);
-      // 3. Create a shareable link
-      // const shareLink = await dropboxService.createSharedLink(uploadResult.path);
-      // 4. Delete from temporary storage
-      // await deleteFromTemporaryStorage(submission.tempVideoPath);
       
       console.log(`Video for submission ${submission.id} successfully uploaded to Dropbox`);
-      
-      // Update the submission with the "real" video path in Dropbox
-      const videoFileName = submission.tempVideoPath?.split('/').pop() || 'video.mp4';
-      const dropboxVideoPath = `${submissionFolderPath}/${videoFileName}`;
       
       return true;
     } catch (error) {
@@ -346,7 +348,7 @@ export const useAdminService = () => {
   const downloadVideo = async (id: string): Promise<boolean> => {
     const submission = submissions.find(s => s.id === id);
     
-    if (!submission || (!submission.videoPath && !submission.tempVideoPath)) {
+    if (!submission || (!submission.videoPath && !submission.videoUrl)) {
       toast({
         title: "Error",
         description: "Video not found",
@@ -356,16 +358,23 @@ export const useAdminService = () => {
     }
     
     try {
-      // In a real implementation, this would download the actual file
-      // For this demo, we'll simulate a download
+      // If we have a Cloudinary URL, use that for download
+      if (submission.videoUrl) {
+        // Create a fake download link that points to the Cloudinary video
+        const a = document.createElement('a');
+        a.href = submission.videoUrl;
+        a.download = `video_${submission.id}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        return true;
+      }
       
-      // Choose which path to use
-      const videoPath = submission.videoPath || submission.tempVideoPath;
-      
-      // Create a fake download link that would point to the video
+      // Fall back to the original implementation if no Cloudinary URL
       const a = document.createElement('a');
-      a.href = `https://example.com${videoPath}`;
-      a.download = videoPath?.split('/').pop() || 'video.mp4';
+      a.href = `https://example.com${submission.videoPath || submission.tempVideoPath}`;
+      a.download = (submission.videoPath || submission.tempVideoPath)?.split('/').pop() || 'video.mp4';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -386,14 +395,21 @@ export const useAdminService = () => {
   const getVideoUrl = (id: string): string => {
     const submission = submissions.find(s => s.id === id);
     
-    if (!submission || (!submission.videoPath && !submission.tempVideoPath)) {
+    if (!submission) {
       return '';
     }
     
-    // In a real application, this would generate a signed URL or access token
-    // For this demo, we'll use a demo video that's publicly accessible
+    // If we have a Cloudinary URL, use that
+    if (submission.videoUrl) {
+      return submission.videoUrl;
+    }
     
-    // Using static demo videos based on the ID to ensure we get different videos for each submission
+    // If we have a Cloudinary public ID but no URL, generate the URL
+    if (submission.cloudinaryPublicId) {
+      return cloudinaryService.getVideoUrl(submission.cloudinaryPublicId);
+    }
+    
+    // Fall back to demo videos
     const demoVideos = [
       'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
       'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',

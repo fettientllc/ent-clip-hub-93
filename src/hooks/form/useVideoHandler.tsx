@@ -4,47 +4,43 @@ import { useState, useEffect } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import type { SubmitFormValues } from "../useSubmitForm";
-import { useSimulatedUploadService } from '@/services/simulatedUploadService';
+import { useCloudinaryService } from '@/services/cloudinaryService';
 
 export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
-  const { uploadFile, createSubmissionFolder } = useSimulatedUploadService();
+  const { uploadVideo } = useCloudinaryService();
 
-  // Function to handle video upload to simulated service
-  const uploadToSimulated = async (file: File) => {
+  // Function to handle video upload to Cloudinary
+  const uploadToCloudinary = async (file: File) => {
     if (!file) return;
     
     setIsUploading(true);
     setUploadProgress(0);
     
     try {
-      // Create a submission folder for this upload
-      const firstName = form.getValues('firstName');
-      const lastName = form.getValues('lastName');
-      
-      // Only create folder if we have name information
-      let folderPath = "/uploads";
-      
-      if (firstName && lastName) {
-        const createdFolder = await createSubmissionFolder(firstName, lastName);
-        if (createdFolder) {
-          folderPath = createdFolder;
-          // Store the folder path for later use
-          form.setValue('submissionFolder', folderPath);
-        }
-      }
-      
-      // Upload file to the created folder or default uploads folder
-      const result = await uploadFile(file, folderPath, (progress) => {
+      // Upload the file to Cloudinary
+      const result = await uploadVideo(file, (progress) => {
         setUploadProgress(progress);
       });
       
-      if (result.success && result.fileId && result.path) {
-        form.setValue('dropboxFileId', result.fileId);
-        form.setValue('dropboxFilePath', result.path);
+      if (result.success && result.fileId && result.url) {
+        // Store the Cloudinary file ID and URL
+        form.setValue('cloudinaryFileId', result.fileId);
+        form.setValue('cloudinaryUrl', result.url);
+        form.setValue('cloudinaryPublicId', result.publicId);
+        
+        // Create a submission folder name (just for reference, not actually used in Cloudinary)
+        const firstName = form.getValues('firstName');
+        const lastName = form.getValues('lastName');
+        
+        if (firstName && lastName) {
+          const folderPath = `/uploads/${firstName}_${lastName}_${Date.now()}`;
+          form.setValue('submissionFolder', folderPath);
+        }
+        
         toast({
           title: "Upload complete",
           description: "Your video was successfully uploaded.",
@@ -72,8 +68,8 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
   // Effect to automatically upload when video file changes
   useEffect(() => {
     const videoFile = form.watch('video') as File | undefined;
-    if (videoFile instanceof File && !form.watch('dropboxFileId')) {
-      uploadToSimulated(videoFile);
+    if (videoFile instanceof File && !form.watch('cloudinaryFileId')) {
+      uploadToCloudinary(videoFile);
     }
   }, [form.watch('video')]);
 

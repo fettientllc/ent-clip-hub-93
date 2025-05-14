@@ -7,11 +7,15 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useVideoHandler } from "./form/useVideoHandler";
 import { useFormDataBuilder } from "./form/useFormDataBuilder";
-import { useSimulatedUploadService } from '@/services/simulatedUploadService';
 import { formSchema } from "./form/formSchema";
 import { addSubmission } from "@/services/adminService";
 
-export type SubmitFormValues = z.infer<typeof formSchema>;
+// Extend the form schema type to include Cloudinary fields
+export type SubmitFormValues = z.infer<typeof formSchema> & {
+  cloudinaryFileId?: string;
+  cloudinaryUrl?: string;
+  cloudinaryPublicId?: string;
+};
 
 export function useSubmitForm() {
   const { toast } = useToast();
@@ -39,7 +43,6 @@ export function useSubmitForm() {
   });
 
   const { buildFormData } = useFormDataBuilder();
-  const { uploadFormDataAsTextFile } = useSimulatedUploadService();
 
   // Import video handling logic
   const {
@@ -62,7 +65,7 @@ export function useSubmitForm() {
       // Reset error state
       setUploadError(null);
       // Trigger upload again
-      form.setValue('dropboxFileId', undefined);
+      form.setValue('cloudinaryFileId', undefined);
       form.setValue('video', undefined as any);
       setTimeout(() => {
         form.setValue('video', videoFile, { shouldValidate: true });
@@ -78,25 +81,9 @@ export function useSubmitForm() {
       
       console.log("Form submitted with data:", data);
       
-      // Check if video was uploaded successfully
-      if (!data.dropboxFileId || !data.dropboxFilePath) {
+      // Check if video was uploaded successfully to Cloudinary
+      if (!data.cloudinaryFileId || !data.cloudinaryUrl) {
         setUploadError("Video upload incomplete. Please try again.");
-        setSubmitting(false);
-        return;
-      }
-      
-      // Get the folder path (or create a default one if not set)
-      const folderPath = data.submissionFolder || `/submissions/${Date.now()}_${data.firstName}_${data.lastName}`;
-      
-      // Upload form data as text file
-      const formDataResult = await uploadFormDataAsTextFile(
-        data,
-        data.signature,
-        folderPath
-      );
-      
-      if (!formDataResult.success) {
-        setUploadError("Failed to save form data. Please try again.");
         setSubmitting(false);
         return;
       }
@@ -104,15 +91,16 @@ export function useSubmitForm() {
       // Create a timestamp for the submission
       const submittedAt = new Date().toISOString();
       
-      // Add submission to admin service
+      // Add submission to admin service with Cloudinary information
       const submissionId = addSubmission({
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
         location: data.location,
         description: data.hasDescription ? data.description : undefined,
-        folderPath: folderPath,
-        tempVideoPath: data.dropboxFilePath,
+        folderPath: data.submissionFolder || `/uploads/${data.firstName}_${data.lastName}_${Date.now()}`,
+        videoUrl: data.cloudinaryUrl,
+        cloudinaryPublicId: data.cloudinaryPublicId,
         signatureProvided: !!data.signature,
         submittedAt: submittedAt,
         status: 'pending',
@@ -122,7 +110,6 @@ export function useSubmitForm() {
         creditPlatform: data.wantCredit ? data.creditPlatform : undefined,
         creditUsername: data.wantCredit ? data.creditUsername : undefined,
         paypalEmail: data.paypalEmail || undefined,
-        uploadedToDropbox: false
       });
       
       console.log("Added submission with ID:", submissionId);

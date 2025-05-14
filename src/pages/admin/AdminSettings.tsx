@@ -18,6 +18,8 @@ const AdminSettings: React.FC = () => {
     enableNotifications: true,
     autoAdd: true,
     emailTemplate: 'Thank you for your submission! We will review your video shortly.',
+    cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dlqi9c0qt',
+    uploadPreset: 'video_submissions'
   });
 
   const handleChange = (field: string, value: string | boolean) => {
@@ -40,15 +42,51 @@ const AdminSettings: React.FC = () => {
         <Alert className="bg-blue-50 border-blue-200">
           <AlertCircle className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800">
-            Currently using simulated upload service for development. No actual Dropbox credentials needed.
+            Using Cloudinary for video uploads with temporary storage until approval.
           </AlertDescription>
         </Alert>
 
         <Card>
           <CardHeader>
+            <CardTitle>Cloudinary Integration</CardTitle>
+            <CardDescription>
+              Configure your Cloudinary video storage settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="cloud-name">Cloud Name</Label>
+              <Input
+                id="cloud-name"
+                value={settings.cloudName}
+                onChange={(e) => handleChange('cloudName', e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Your Cloudinary cloud name
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="upload-preset">Upload Preset</Label>
+              <Input
+                id="upload-preset"
+                value={settings.uploadPreset}
+                onChange={(e) => handleChange('uploadPreset', e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Unsigned upload preset (create this in your Cloudinary dashboard)
+              </p>
+            </div>
+            
+            <Button onClick={handleSave}>Save Changes</Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>File Storage Integration</CardTitle>
             <CardDescription>
-              Configure how files are stored and organized (Simulation Mode)
+              Configure how files are stored and organized after approval
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -60,7 +98,7 @@ const AdminSettings: React.FC = () => {
                 onChange={(e) => handleChange('approvedFolder', e.target.value)}
               />
               <p className="text-sm text-muted-foreground">
-                Path where approved videos will be stored (simulated)
+                Path where approved videos will be stored in Dropbox
               </p>
             </div>
             
