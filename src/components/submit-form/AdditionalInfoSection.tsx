@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
@@ -116,11 +117,11 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({ form }) =
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="yes" id="yes-recording" />
-                    <FormLabel htmlFor="yes-recording" className="font-normal">Yes</FormLabel>
+                    <FormLabel htmlFor="yes-recording" className="font-bold text-black">Yes</FormLabel>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="no" id="no-recording" />
-                    <FormLabel htmlFor="no-recording" className="font-normal">No</FormLabel>
+                    <FormLabel htmlFor="no-recording" className="font-bold text-black">No</FormLabel>
                   </div>
                 </RadioGroup>
               </FormControl>

@@ -89,7 +89,7 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
       name="video"
       render={({ field: { onChange, value, ...rest } }) => (
         <FormItem>
-          <FormLabel className="text-gray-800 font-medium">Upload Video (Required)</FormLabel>
+          <FormLabel className="text-gray-800 font-bold">Upload Video (Required)</FormLabel>
           <FormControl>
             <div className={`bg-gray-50 rounded border ${hasError ? 'border-red-500' : 'border-gray-300'} overflow-hidden`}>
               {videoFileName ? (
@@ -132,9 +132,9 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
               ) : (
                 <div className="p-6">
                   <label htmlFor="video-upload" className="cursor-pointer flex flex-col items-center w-full">
-                    <div className={`mb-4 px-6 py-4 rounded-md bg-white border-2 ${hasError ? 'border-red-500' : 'border-blue-200'} flex flex-col items-center justify-center hover:border-blue-400 transition-colors`}>
-                      <Upload className={`h-8 w-8 ${hasError ? 'text-red-500' : 'text-blue-600'} mb-2`} />
-                      <span className={`font-medium ${hasError ? 'text-red-500' : 'text-blue-600'}`}>
+                    <div className={`mb-4 px-8 py-6 rounded-md bg-white border-2 w-full max-w-md mx-auto ${hasError ? 'border-red-500' : 'border-blue-300 border-2'} flex flex-col items-center justify-center hover:border-blue-400 transition-colors`}>
+                      <Upload className={`h-10 w-10 ${hasError ? 'text-red-500' : 'text-blue-600'} mb-3`} />
+                      <span className={`font-bold text-lg ${hasError ? 'text-red-500' : 'text-blue-600'}`}>
                         Click to upload video
                       </span>
                     </div>
