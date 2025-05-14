@@ -1,4 +1,3 @@
-
 import { useDropboxService } from "./dropboxService";
 import { useToast } from "@/hooks/use-toast";
 import { useMailingListService } from "./mailingListService";
@@ -282,6 +281,30 @@ export const useAdminService = () => {
     }
   };
 
+  // New function to get the video URL for display
+  const getVideoUrl = (id: string): string => {
+    const submission = submissions.find(s => s.id === id);
+    
+    if (!submission || !submission.videoPath) {
+      return '';
+    }
+    
+    // In a real application, this would generate a signed URL or access token
+    // For this demo, we'll use a demo video that's publicly accessible
+    
+    // Using static demo videos based on the ID to ensure we get different videos for each submission
+    const demoVideos = [
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    ];
+    
+    // Use the submission ID to deterministically select a demo video
+    const videoIndex = parseInt(id.replace('sub-', '')) % demoVideos.length;
+    return demoVideos[videoIndex - 1 >= 0 ? videoIndex - 1 : 0];
+  };
+
   return {
     getSubmissions,
     getDashboardStats,
@@ -289,6 +312,7 @@ export const useAdminService = () => {
     rejectSubmission,
     deleteSubmission,
     addSubmissionNote,
-    downloadVideo
+    downloadVideo,
+    getVideoUrl  // Expose the new function
   };
 };

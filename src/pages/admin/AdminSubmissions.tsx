@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useAdminService, SubmissionData } from '@/services/adminService';
@@ -17,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -30,7 +29,8 @@ const AdminSubmissions: React.FC = () => {
     rejectSubmission, 
     deleteSubmission, 
     addSubmissionNote,
-    downloadVideo
+    downloadVideo,
+    getVideoUrl
   } = useAdminService();
   
   // State
@@ -213,6 +213,12 @@ const AdminSubmissions: React.FC = () => {
     window.location.href = `mailto:${email}?subject=Regarding your video submission`;
   };
 
+  // Get the actual video URL for a submission
+  const getVideoSrc = (submission: SubmissionData) => {
+    if (!submission.videoPath) return '';
+    return getVideoUrl(submission.id);
+  };
+
   const renderTable = () => (
     <div className="rounded-md border overflow-hidden">
       <Table>
@@ -311,7 +317,7 @@ const AdminSubmissions: React.FC = () => {
             <div className="bg-gray-100 w-full relative">
               <AspectRatio ratio={16 / 9}>
                 <video 
-                  src={`https://example.com${submission.videoPath}`} // Replace with actual video path
+                  src={getVideoSrc(submission)}
                   controls 
                   className="w-full h-full object-cover"
                   poster="/placeholder.svg"
@@ -500,6 +506,9 @@ const AdminSubmissions: React.FC = () => {
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Submission Details</DialogTitle>
+              <DialogDescription>
+                View and manage submission from {selectedSubmission.firstName} {selectedSubmission.lastName}
+              </DialogDescription>
             </DialogHeader>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
@@ -507,7 +516,7 @@ const AdminSubmissions: React.FC = () => {
                   <div className="mb-6">
                     <AspectRatio ratio={16 / 9}>
                       <video 
-                        src={`https://example.com${selectedSubmission.videoPath}`} // Replace with actual path
+                        src={getVideoSrc(selectedSubmission)}
                         controls 
                         className="rounded-md w-full h-full object-cover"
                         poster="/placeholder.svg"
