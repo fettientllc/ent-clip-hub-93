@@ -42,6 +42,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import SubmissionStorageStatus from '@/components/admin/SubmissionStorageStatus';
+import AdminHeader from '@/components/admin/AdminHeader';
 
 const AdminSubmissions: React.FC = () => {
   const { 
@@ -340,6 +342,7 @@ const AdminSubmissions: React.FC = () => {
         <TableHeader>
           <TableRow>
             <TableHead>Status</TableHead>
+            <TableHead>Storage</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Location</TableHead>
@@ -355,6 +358,15 @@ const AdminSubmissions: React.FC = () => {
             >
               <TableCell>
                 {getStatusBadge(submission.status)}
+              </TableCell>
+              <TableCell>
+                <SubmissionStorageStatus 
+                  cloudinaryUrl={submission.videoUrl}
+                  dropboxPath={submission.dropboxVideoPath}
+                  supabasePath={submission.supabaseVideoPath}
+                  onViewVideo={() => handleOpenVideo(submission)}
+                  onDownload={() => handleDownload(submission.id)}
+                />
               </TableCell>
               <TableCell className="font-medium">
                 {submission.firstName} {submission.lastName}
@@ -378,24 +390,6 @@ const AdminSubmissions: React.FC = () => {
                   >
                     <Eye className="h-4 w-4 mr-1" />
                     Details
-                  </Button>
-                  
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleOpenVideo(submission)}
-                    title="Preview Video"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDownload(submission.id)}
-                    title="Download Video"
-                  >
-                    <Download className="h-4 w-4" />
                   </Button>
                   
                   <Button
@@ -432,13 +426,23 @@ const AdminSubmissions: React.FC = () => {
               />
             </AspectRatio>
             
-            <div className="absolute top-2 right-2">
+            <div className="absolute top-2 right-2 flex flex-col gap-1">
               {getStatusBadge(submission.status)}
             </div>
           </div>
           
           <div className="p-4">
-            <h3 className="font-bold text-lg">{submission.firstName} {submission.lastName}</h3>
+            <div className="flex justify-between items-start mb-3">
+              <h3 className="font-bold text-lg">{submission.firstName} {submission.lastName}</h3>
+              <SubmissionStorageStatus 
+                cloudinaryUrl={submission.videoUrl}
+                dropboxPath={submission.dropboxVideoPath}
+                supabasePath={submission.supabaseVideoPath}
+                onViewVideo={() => handleOpenVideo(submission)}
+                onDownload={() => handleDownload(submission.id)}
+              />
+            </div>
+            
             <p className="text-sm text-gray-500">{submission.email}</p>
             <p className="text-sm text-gray-500">{submission.location || "No location provided"}</p>
             <p className="text-sm text-gray-600 mt-2">
@@ -463,15 +467,6 @@ const AdminSubmissions: React.FC = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => handleDownload(submission.id)}
-                title="Download Video"
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="icon"
                 onClick={() => handleContactSubmitter(submission.email)}
                 title="Email Submitter"
               >
@@ -490,8 +485,20 @@ const AdminSubmissions: React.FC = () => {
 
   return (
     <AdminLayout title="Video Submissions">
+      <div className="mb-6">
+        <AdminHeader title="Video Submissions" />
+      </div>
+      
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Video Submissions</h1>
+        <div className="relative flex-grow mr-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input 
+            placeholder="Search by name, email, or location..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
         
         <div className="flex space-x-2">
           <Button
