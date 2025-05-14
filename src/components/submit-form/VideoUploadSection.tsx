@@ -3,10 +3,12 @@ import React, { useRef, useState, useEffect } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
-import { Video, Upload, Info } from 'lucide-react';
+import { Video, Upload, Info, Wifi, FileWarning } from 'lucide-react';
 import { SubmitFormValues } from '@/hooks/useSubmitForm';
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface VideoUploadSectionProps {
   form: UseFormReturn<SubmitFormValues>;
@@ -29,11 +31,14 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const { toast } = useToast();
+  const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'complete' | 'error'>('idle');
 
   const videoFile = form.watch('video') as File | undefined;
   const dropboxFileId = form.watch('dropboxFileId');
   const dropboxFilePath = form.watch('dropboxFilePath');
-  const uploadComplete = !!dropboxFileId;
+  const cloudinaryFileId = form.watch('cloudinaryFileId');
+  const uploadComplete = !!cloudinaryFileId || !!dropboxFileId;
 
   // Create object URL for video preview when file changes
   useEffect(() => {
@@ -50,16 +55,33 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
     }
   }, [videoFile]);
 
+  // Update upload state based on props
+  useEffect(() => {
+    if (isUploading) {
+      setUploadState('uploading');
+    } else if (uploadComplete) {
+      setUploadState('complete');
+    } else if (form.formState.errors.video) {
+      setUploadState('error');
+    } else {
+      setUploadState('idle');
+    }
+  }, [isUploading, uploadComplete, form.formState.errors.video]);
+
   const clearVideo = () => {
     setVideoFileName(null);
     form.setValue('video', undefined as any, { shouldValidate: true });
     form.setValue('dropboxFileId', undefined);
     form.setValue('dropboxFilePath', undefined);
+    form.setValue('cloudinaryFileId', undefined);
+    form.setValue('cloudinaryUrl', undefined);
+    form.setValue('cloudinaryPublicId', undefined);
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (videoPreviewUrl) {
       URL.revokeObjectURL(videoPreviewUrl);
       setVideoPreviewUrl(null);
     }
+    setUploadState('idle');
   };
 
   const hasError = (showError && !!form.formState.errors.video);
@@ -80,8 +102,42 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
           <li>• Feature graphic violence or nudity</li>
         </ul>
       </div>
+      
+      <Alert className="mt-4 bg-blue-50 border-blue-200">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-800 text-xs">
+          Files under 30MB work best. If your file is larger, consider using{" "}
+          <a 
+            href="https://handbrake.fr/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="underline font-semibold"
+            onClick={(e) => e.stopPropagation()}
+          >
+            HandBrake
+          </a>{" "}
+          to compress it before uploading.
+        </AlertDescription>
+      </Alert>
     </div>
   );
+
+  const retryUpload = () => {
+    if (videoFile instanceof File) {
+      // Reset error state
+      form.setValue('cloudinaryFileId', undefined);
+      form.setValue('video', undefined as any);
+      toast({
+        title: "Retrying upload",
+        description: "Attempting to upload your video again."
+      });
+      
+      // Trigger upload again
+      setTimeout(() => {
+        form.setValue('video', videoFile, { shouldValidate: true });
+      }, 100);
+    }
+  };
 
   return (
     <FormField
@@ -105,6 +161,33 @@ const VideoUploadSection: React.FC<VideoUploadSectionProps> = ({
                         <span className="text-xs text-gray-500">{uploadProgress}%</span>
                       </div>
                       <Progress value={uploadProgress} className="h-2 w-full" />
+                    </div>
+                  )}
+                  
+                  {/* Upload state messages */}
+                  {uploadState === 'error' && (
+                    <div className="w-full mt-2">
+                      <Alert className="bg-red-50 border-red-200 text-red-800">
+                        <FileWarning className="h-4 w-4 text-red-600" />
+                        <AlertDescription className="text-sm">
+                          Upload failed. This may be due to network issues or file size.
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm"
+                            onClick={retryUpload}
+                            className="mt-2 flex items-center gap-1 text-xs"
+                          >
+                            <Wifi className="h-3 w-3" /> Retry Upload
+                          </Button>
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  )}
+                  
+                  {uploadComplete && (
+                    <div className="w-full mt-2 text-center text-sm text-green-600 font-medium">
+                      Upload complete! ✓
                     </div>
                   )}
                   
