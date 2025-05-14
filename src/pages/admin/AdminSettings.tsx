@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,7 @@ const AdminSettings: React.FC = () => {
     autoAdd: true,
     emailTemplate: 'Thank you for your submission! We will review your video shortly.',
     cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dlqi9c0qt',
-    uploadPreset: 'ml_default'  // Updated to use ml_default
+    uploadPreset: 'ml_default'  // Default Cloudinary preset
   });
 
   const handleChange = (field: string, value: string | boolean) => {
@@ -41,7 +42,7 @@ const AdminSettings: React.FC = () => {
         <Alert className="bg-blue-50 border-blue-200">
           <AlertCircle className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800">
-            Using Cloudinary for video uploads with temporary storage until approval.
+            Using Cloudinary for video uploads with upload preset: {settings.uploadPreset}
           </AlertDescription>
         </Alert>
 

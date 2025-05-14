@@ -40,6 +40,9 @@ export const useCloudinaryService = () => {
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dlqi9c0qt';
   const apiKey = import.meta.env.VITE_CLOUDINARY_API_KEY || '367216336812145';
   
+  // Default upload preset - this is crucial for unsigned uploads
+  const uploadPreset = 'ml_default';
+  
   const uploadVideo = async (
     file: File, 
     onProgress?: (progress: number) => void
@@ -48,7 +51,7 @@ export const useCloudinaryService = () => {
       // Create a FormData object to send the file
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', 'unsigned_upload'); // Try with a different preset name
+      formData.append('upload_preset', uploadPreset); // Using the default preset
       formData.append('api_key', apiKey);
       formData.append('resource_type', 'video');
       
@@ -96,10 +99,11 @@ export const useCloudinaryService = () => {
             
             console.error("Upload failed:", errorMessage);
             
-            // Try alternative approach without preset
-            if (errorMessage.includes("preset not found")) {
-              // Attempt alternative upload without preset
-              return uploadWithoutPreset(file, onProgress)
+            // Try alternative approach if the preset is not found
+            if (errorMessage.includes("preset not found") || errorMessage.includes("Upload preset must be specified")) {
+              console.log("Trying alternative upload method with explicit preset");
+              // Attempt alternative upload with explicit preset
+              return uploadWithExplicitPreset(file, onProgress)
                 .then(result => resolve(result))
                 .catch(err => {
                   resolve({
@@ -120,7 +124,7 @@ export const useCloudinaryService = () => {
         xhr.onerror = () => {
           console.error("Network error during upload");
           // Try alternative upload method
-          uploadWithoutPreset(file, onProgress)
+          uploadWithExplicitPreset(file, onProgress)
             .then(result => resolve(result))
             .catch(err => {
               resolve({
@@ -141,6 +145,7 @@ export const useCloudinaryService = () => {
         // Add debugging information
         console.log('Uploading to Cloudinary:', {
           cloudName,
+          uploadPreset,
           fileName: file.name,
           fileSize: file.size
         });
@@ -159,21 +164,18 @@ export const useCloudinaryService = () => {
     }
   };
   
-  // Alternative upload method without using preset
-  const uploadWithoutPreset = async (
+  // Alternative upload method with explicit preset
+  const uploadWithExplicitPreset = async (
     file: File, 
     onProgress?: (progress: number) => void
   ): Promise<CloudinaryUploadResult> => {
     return new Promise((resolve, reject) => {
       try {
-        // Create a timestamp and signature for unsigned upload
-        const timestamp = Math.round(new Date().getTime() / 1000);
-        
         // Create FormData object
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('upload_preset', uploadPreset); // Explicitly set the upload preset
         formData.append('api_key', apiKey);
-        formData.append('timestamp', timestamp.toString());
         formData.append('resource_type', 'video');
         
         // Set up the request
@@ -239,6 +241,7 @@ export const useCloudinaryService = () => {
         
         console.log('Trying alternative Cloudinary upload:', {
           cloudName,
+          uploadPreset,
           fileName: file.name,
           fileSize: file.size
         });
