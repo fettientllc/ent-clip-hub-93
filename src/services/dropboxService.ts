@@ -1,13 +1,20 @@
-
 import { useToast } from "@/hooks/use-toast";
 
-// Dropbox API credentials
-const DROPBOX_APP_KEY = "5nzghodgrbcx7st"; 
-const DROPBOX_ACCESS_TOKEN = "sl.u.AFtlcUqGWWi8RDaj8eA8epLmqIRFC3hJEEnBrxroqjc-uHNGGEB4GTyIi4QLwXpKnvX4Oi1U8taEQx9dVQbz0LG8YOXWQ4mP3bcP8YQ4zlx0BQZqFE5EzFA-oS2hq0icY2CGabtPkmm2Y2-FGo8KBSNEue0ANEeDxZTNrIRfMIMrF4oxcDp2wDnZccstP4FOBKznQfsIpF7JoLItX_-MQCB2eSi2bjf3H3-2weo_rgCyPSW808czDXuPUfle30uoi9lpyYPG6uzCpR119CObkMVkwsTEUGp4bBIN_Z8TrH-LEvjpVGoT4AzE4tMVA382adO9n5s4CZAc9fhCiK0OzgZ_vPkAfNOYcKZEIVytxmb-haR5G1qQMixv8wag2fUiVl6z4dQHqwmuCGsLi-s-SWIgkFQQcZgM6t76VXNnpTQ2oZOp50hEm2VS2fyeJDGVB2mQ08blpVXa9IriW-nkwPfYbzfCjk3bSMbH1IyeZQSsUbGFYmHsoPO1nz9kIi8sLMFR_HsKAX5TzMeJqMORPvWruwIt0wVvDtJKCVZg7sCLGyUGDFphPtwS9BgLTX1uqZhkuLO6b7fE0VyFiPNLCBEcOPwN0xsYPXo1ZfGtUOwvjlWsnlzZw0LTsk1AJHaZLPSwk3evNUNznALY0U5EkKNHlcAPKY8N-Xplj6g7z-AHenfygYh5B2um093aEjGTUXyKsRjJ2dy9D4WS88GvUplJvU881KCEvj7Ed---AOdRI_Ji5Lw7zCPUmG93Fvy57rdjVtewX3YsZWShVfO9cX8r0pR_qbqF2yWuqaKU_-zDaDcRM3LsXJAani0Cf8n58As7BlAJSRmo1M2xCkCpl0a7yXzJ-TkbC3E6cCIo81ckrXOyIYEJXzYXzxXoxvqebTcnENNVi-tx0tKpuZ9lqFPpwF2bemnx6-QuL6MvomJyAJoD6_kw1Dmg4_jjMtbn1Z-HAjWDNSKTa4e1wF4xhNdAyy1h2C-dflcCi8-6Cn4vUXbXgY_3NvU8t6yyNWFAJgsQlTtqtpA_AloeWqZooz9fda0eL9v3a3UGqyQekAZISiXlrI_isUG--HPmFEYtJ2XwwfT5v7IzPA9SQ5w8Ma_wX5rTK6TFKFnprrO3kB-eEeJ2X4QovIuowXATW58LaPW7FZD_Rahogcp-Y4lc8OCxwat16Oe8m4IYt3q8-LiVJdaz8D5I875Y0pvCbKaF-Ye1yFrB-ZHBVDVwRhc1m5sRcqx9rYc0_w_h0h1vPbKJcqL-27SmPVOesUZnqlmQoG1ZaoDg8E0P9w8TbDTkLPafTYuIwcM8vebspQzyW8eF1cATMx5TLWyisMhHNPPMTuPAtcjiFbPf7Rm18QVo_iw6xMYaRMBW6C1awR1lZWValNH64ZiNA1LJMHAT8ZRGV8DDwVhZI3qps-Z3vKgeEWPo";
+// Dropbox API credentials - these will be replaced with env variables
+const DROPBOX_APP_KEY = "5nzghodgrbcx7st";
 
 // Base URL for Dropbox API v2
 const DROPBOX_API_URL = "https://content.dropboxapi.com/2";
 const DROPBOX_API_AUTH_URL = "https://api.dropboxapi.com/2";
+const DROPBOX_OAUTH_URL = "https://api.dropboxapi.com/oauth2";
+
+// Token management
+interface TokenData {
+  access_token: string;
+  expires_at: number; // Timestamp when the token expires
+}
+
+let cachedToken: TokenData | null = null;
 
 interface UploadProgressCallback {
   (progress: number): void;
@@ -20,6 +27,65 @@ interface UploadResponse {
   error?: string;
 }
 
+/**
+ * Get a valid access token, refreshing if necessary
+ * @returns Promise with valid access token
+ */
+const getAccessToken = async (): Promise<string> => {
+  const now = Date.now();
+  
+  // If we have a cached token that's still valid, use it
+  if (cachedToken && cachedToken.expires_at > now) {
+    console.log("Using cached Dropbox token");
+    return cachedToken.access_token;
+  }
+  
+  console.log("Refreshing Dropbox access token");
+  
+  // In a real environment, these would come from environment variables
+  // For demonstration, we'll use placeholder values
+  const clientId = process.env.DROPBOX_CLIENT_ID || DROPBOX_APP_KEY;
+  const clientSecret = process.env.DROPBOX_CLIENT_SECRET || "placeholder_secret";
+  const refreshToken = process.env.DROPBOX_REFRESH_TOKEN || "placeholder_refresh_token";
+  
+  try {
+    // If this were a real server environment, we'd make this request server-side
+    // For demonstration in a client-only app, we're making the request directly
+    // In production, this should be moved to a secure server endpoint
+    const response = await fetch(`${DROPBOX_OAUTH_URL}/token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+        client_id: clientId,
+        client_secret: clientSecret,
+      }).toString(),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to refresh token: ${response.status} ${errorText}`);
+    }
+    
+    const data = await response.json();
+    
+    // Cache the token with expiration time (14400 seconds / 4 hours)
+    cachedToken = {
+      access_token: data.access_token,
+      // Set expiration 5 minutes before actual expiry to be safe
+      expires_at: now + ((data.expires_in - 300) * 1000),
+    };
+    
+    return data.access_token;
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+    throw new Error(`Failed to get access token: ${(error as Error).message}`);
+  }
+};
+
 export const useDropboxService = () => {
   const { toast } = useToast();
 
@@ -30,10 +96,12 @@ export const useDropboxService = () => {
    */
   const createFolder = async (folderPath: string): Promise<boolean> => {
     try {
+      const accessToken = await getAccessToken();
+      
       const response = await fetch(`${DROPBOX_API_AUTH_URL}/files/create_folder_v2`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${DROPBOX_ACCESS_TOKEN}`,
+          "Authorization": `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -279,67 +347,77 @@ export const useDropboxService = () => {
     path: string,
     onProgress?: UploadProgressCallback
   ): Promise<UploadResponse> => {
-    const xhr = new XMLHttpRequest();
-    
-    return new Promise((resolve) => {
-      xhr.open("POST", `${DROPBOX_API_URL}/files/upload`, true);
+    try {
+      const accessToken = await getAccessToken();
       
-      // Set Dropbox headers
-      xhr.setRequestHeader("Authorization", `Bearer ${DROPBOX_ACCESS_TOKEN}`);
-      xhr.setRequestHeader("Content-Type", "application/octet-stream");
-      xhr.setRequestHeader(
-        "Dropbox-API-Arg",
-        JSON.stringify({
-          path,
-          mode: "add",
-          autorename: true,
-          mute: false,
-        })
-      );
+      const xhr = new XMLHttpRequest();
       
-      // Track upload progress
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable && onProgress) {
-          const percentComplete = Math.round((event.loaded / event.total) * 100);
-          onProgress(percentComplete);
-        }
-      };
-      
-      // Handle completion
-      xhr.onload = function() {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const response = JSON.parse(xhr.responseText);
-            resolve({
-              success: true,
-              fileId: response.id,
-              path: response.path_display,
-            });
-          } catch (e) {
+      return new Promise((resolve) => {
+        xhr.open("POST", `${DROPBOX_API_URL}/files/upload`, true);
+        
+        // Set Dropbox headers with the refreshed token
+        xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+        xhr.setRequestHeader("Content-Type", "application/octet-stream");
+        xhr.setRequestHeader(
+          "Dropbox-API-Arg",
+          JSON.stringify({
+            path,
+            mode: "add",
+            autorename: true,
+            mute: false,
+          })
+        );
+        
+        // Track upload progress
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable && onProgress) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            onProgress(percentComplete);
+          }
+        };
+        
+        // Handle completion
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              resolve({
+                success: true,
+                fileId: response.id,
+                path: response.path_display,
+              });
+            } catch (e) {
+              resolve({
+                success: false,
+                error: "Error parsing server response",
+              });
+            }
+          } else {
             resolve({
               success: false,
-              error: "Error parsing server response",
+              error: `Server returned error ${xhr.status}: ${xhr.responseText}`,
             });
           }
-        } else {
+        };
+        
+        // Handle errors
+        xhr.onerror = function() {
           resolve({
             success: false,
-            error: `Server returned error ${xhr.status}: ${xhr.responseText}`,
+            error: "Network error during upload",
           });
-        }
+        };
+        
+        // Upload the file
+        xhr.send(file);
+      });
+    } catch (error) {
+      console.error("Small file upload error:", error);
+      return {
+        success: false,
+        error: (error as Error).message,
       };
-      
-      // Handle errors
-      xhr.onerror = function() {
-        resolve({
-          success: false,
-          error: "Network error during upload",
-        });
-      };
-      
-      // Upload the file
-      xhr.send(file);
-    });
+    }
   };
 
   /**
@@ -351,6 +429,8 @@ export const useDropboxService = () => {
     onProgress?: UploadProgressCallback
   ): Promise<UploadResponse> => {
     try {
+      const accessToken = await getAccessToken();
+      
       // For large files, we need to:
       // 1. Start an upload session
       // 2. Upload file chunks in the session
@@ -397,10 +477,12 @@ export const useDropboxService = () => {
    */
   const createSharedLink = async (path: string): Promise<string | null> => {
     try {
+      const accessToken = await getAccessToken();
+      
       const response = await fetch(`${DROPBOX_API_AUTH_URL}/sharing/create_shared_link_with_settings`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${DROPBOX_ACCESS_TOKEN}`,
+          "Authorization": `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -429,6 +511,6 @@ export const useDropboxService = () => {
     uploadFormDataAsTextFile,
     createSharedLink,
     createSubmissionFolder,
-    createFolder // Explicitly include the createFolder method in the returned object
+    createFolder
   };
 };
