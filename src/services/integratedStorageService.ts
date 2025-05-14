@@ -1,6 +1,6 @@
 
 import { useDropboxService } from './dropboxService';
-import { useSupabaseService, type SubmissionRecord } from './supabaseService';
+import { useSupabaseService, type SubmissionRecord, supabase } from './supabaseService';
 import { useToast } from "@/hooks/use-toast";
 
 export const useIntegratedStorageService = () => {
@@ -133,9 +133,9 @@ export const useIntegratedStorageService = () => {
         throw new Error('Failed to upload signature to Supabase');
       }
       
-      // Upload to Dropbox
-      const dropboxResult = await dropboxService.uploadSignatureImage(
-        signatureDataUrl,
+      // Upload to Dropbox - creating a File from the signature data URL
+      const dropboxResult = await dropboxService.uploadFile(
+        signatureFile,
         folders.dropboxPath
       );
       
@@ -204,9 +204,8 @@ export const useIntegratedStorageService = () => {
       }
       
       // Upload to Dropbox
-      const dropboxResult = await dropboxService.uploadTextFile(
-        textContent,
-        'submission_details.txt',
+      const dropboxResult = await dropboxService.uploadFile(
+        new File([textContent], 'submission_details.txt', { type: 'text/plain' }),
         folders.dropboxPath
       );
       
