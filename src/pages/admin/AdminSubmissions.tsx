@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useAdminService, SubmissionData } from '@/services/adminService';
+import { 
+  MoreHorizontal, 
+  Download, 
+  Mail, 
+  Trash2, 
+  Check, 
+  X, 
+  GridIcon, 
+  List as ListIcon,
+  Search,
+  FileSpreadsheet,
+  FileJson,
+  Clock,
+  Filter
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Check, X, Download, Search, FileText, Mail } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,7 +24,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { dateFilters, filterSubmissions } from "@/services/filterService";
+import { useFilterService } from '@/services/filterService';
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from 'date-fns';
 
 const AdminSubmissions: React.FC = () => {
   const { 
@@ -34,475 +41,543 @@ const AdminSubmissions: React.FC = () => {
   } = useAdminService();
   
   // State
-  const [submissions, setSubmissions] = useState<SubmissionData[]>(getSubmissions());
-  const [processingId, setProcessingId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [view, setView] = useState<'table' | 'grid'>('table');
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<SubmissionData | null>(null);
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [filters, setFilters] = useState({
-    dateRange: 'all',
-    ownRecording: null as boolean | null,
-    wantCredit: null as boolean | null,
-    hasPaypalEmail: null as boolean | null,
-    status: 'all',
-  });
+  const [adminNote, setAdminNote] = useState('');
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   
-  // Filter submissions based on search term and filters
-  const filteredSubmissions = filterSubmissions(submissions, searchTerm, filters);
-
+  // Get all submissions
+  const allSubmissions = getSubmissions();
+  
+  // Filtering functionality
+  const { 
+    searchTerm, 
+    setSearchTerm,
+    dateRange,
+    setDateRange,
+    filterOptions,
+    setFilterOptions,
+    filteredSubmissions,
+    resetFilters,
+    exportToCSV,
+    exportToJSON
+  } = useFilterService(allSubmissions);
+  
+  // Handle opening submission details
+  const handleOpenDetails = (submission: SubmissionData) => {
+    setSelectedSubmission(submission);
+    setAdminNote(submission.adminNotes || '');
+    setIsDetailsOpen(true);
+  };
+  
+  // Handle approval
   const handleApprove = async (id: string) => {
-    setProcessingId(id);
     const success = await approveSubmission(id);
     if (success) {
-      setSubmissions(getSubmissions());
-      toast({
-        title: "Success",
-        description: "Submission has been approved",
-      });
+      // Refresh the list (in a real app, this might involve re-fetching)
+      setIsDetailsOpen(false);
     }
-    setProcessingId(null);
   };
-
+  
+  // Handle rejection
   const handleReject = (id: string) => {
-    setProcessingId(id);
     const success = rejectSubmission(id);
     if (success) {
-      setSubmissions(getSubmissions());
-      toast({
-        title: "Success",
-        description: "Submission has been rejected",
-      });
+      // Refresh the list
+      setIsDetailsOpen(false);
     }
-    setProcessingId(null);
   };
-
+  
+  // Handle delete
   const handleDelete = (id: string) => {
-    setProcessingId(id);
-    const success = deleteSubmission(id);
-    if (success) {
-      setSubmissions(getSubmissions());
-      toast({
-        title: "Success",
-        description: "Submission has been deleted",
-      });
+    if (window.confirm('Are you sure you want to delete this submission? This action cannot be undone.')) {
+      const success = deleteSubmission(id);
+      if (success) {
+        setIsDetailsOpen(false);
+      }
     }
-    setProcessingId(null);
   };
   
-  const handleDownload = async (id: string) => {
-    setProcessingId(id);
-    try {
-      await downloadVideo(id);
-      toast({
-        title: "Download started",
-        description: "Your download should begin shortly",
-      });
-    } catch (error) {
-      console.error("Download failed:", error);
-      toast({
-        title: "Download failed",
-        description: "Failed to download video",
-        variant: "destructive",
-      });
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleExportData = (format: 'csv' | 'json') => {
-    // Get all submissions or just filtered ones
-    const dataToExport = filteredSubmissions;
+  // Save admin note
+  const handleSaveNote = (id: string) => {
+    if (!selectedSubmission) return;
     
-    let content = '';
-    let filename = '';
+    const success = addSubmissionNote(id, adminNote);
     
-    if (format === 'csv') {
-      // Create CSV content
-      const headers = ['ID', 'Name', 'Email', 'Location', 'Date', 'Status', 'Own Recording', 'Want Credit', 'PayPal Email'];
-      content = headers.join(',') + '\n';
-      
-      dataToExport.forEach(sub => {
-        const row = [
-          sub.id,
-          `${sub.firstName} ${sub.lastName}`,
-          sub.email,
-          sub.location || '',
-          sub.submittedAt,
-          sub.status,
-          sub.isOwnRecording ? 'Yes' : 'No',
-          sub.wantCredit ? 'Yes' : 'No',
-          sub.paypalEmail || ''
-        ];
-        
-        // Escape commas and quotes in CSV
-        const escapedRow = row.map(cell => {
-          if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"'))) {
-            return `"${cell.replace(/"/g, '""')}"`;
-          }
-          return cell;
-        });
-        
-        content += escapedRow.join(',') + '\n';
-      });
-      
-      filename = `submissions-export-${new Date().toISOString().slice(0, 10)}.csv`;
-    } else {
-      // JSON format
-      content = JSON.stringify(dataToExport, null, 2);
-      filename = `submissions-export-${new Date().toISOString().slice(0, 10)}.json`;
-    }
-    
-    // Create download link
-    const blob = new Blob([content], { type: format === 'csv' ? 'text/csv' : 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Export successful",
-      description: `Data exported as ${format.toUpperCase()}`,
-    });
-  };
-  
-  const handleSaveNote = (id: string, note: string) => {
-    const success = addSubmissionNote(id, note);
     if (success) {
-      setSubmissions(getSubmissions());
       toast({
-        title: "Note saved",
-        description: "Your note has been added to the submission",
+        title: "Note Saved",
+        description: "The admin note has been saved successfully",
       });
-      setSelectedSubmission(null);
+      
+      // Update the selected submission to reflect the change
+      setSelectedSubmission({
+        ...selectedSubmission,
+        adminNotes: adminNote
+      });
     } else {
       toast({
         title: "Error",
-        description: "Failed to save note",
+        description: "Failed to save admin note",
         variant: "destructive",
       });
     }
   };
-
-  const getStatusBadge = (status: string) => {
+  
+  // Download video
+  const handleDownload = async (id: string) => {
+    await downloadVideo(id);
+  };
+  
+  // Apply background color based on status
+  const getStatusBackground = (status: string) => {
     switch (status) {
       case 'approved':
-        return <Badge className="bg-green-500">Approved</Badge>;
+        return 'bg-green-50 border-green-200';
       case 'rejected':
-        return <Badge variant="destructive">Rejected</Badge>;
+        return 'bg-red-50 border-red-200';
       default:
-        return <Badge variant="outline">Pending</Badge>;
+        return 'bg-gray-50 border-gray-200';
     }
   };
   
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return format(date, 'MMM d, yyyy h:mm a');
+    } catch (e) {
+      return dateString;
+    }
+  };
+  
+  const handleDateRangeSelect = (date: Date | undefined) => {
+    if (date) {
+      if (!dateRange.from) {
+        setDateRange({ from: date, to: undefined });
+      } else if (dateRange.from && !dateRange.to && date >= dateRange.from) {
+        setDateRange({ from: dateRange.from, to: date });
+      } else {
+        setDateRange({ from: date, to: undefined });
+      }
+    }
+  };
+  
+  const handleFilterToggle = (filterName: string) => {
+    setFilterOptions((prev) => ({
+      ...prev,
+      [filterName]: !prev[filterName]
+    }));
+  };
+  
+  const handleExportCSV = () => {
+    exportToCSV();
+    toast({
+      title: "Export successful",
+      description: "Submissions have been exported to CSV format",
+    });
+  };
+  
+  const handleExportJSON = () => {
+    exportToJSON();
+    toast({
+      title: "Export successful",
+      description: "Submissions have been exported to JSON format",
+    });
   };
   
   const handleContactSubmitter = (email: string) => {
     window.location.href = `mailto:${email}?subject=Regarding your video submission`;
   };
 
-  // Get the actual video URL for a submission
+  // Use demo videos for preview
   const getVideoSrc = (submission: SubmissionData) => {
     if (!submission.videoPath) return '';
-    return getVideoUrl(submission.id);
+    
+    // Using static demo videos based on the submission ID
+    const demoVideos = [
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+    ];
+    
+    // Use the submission ID to deterministically select a demo video
+    const videoIndex = parseInt(submission.id.replace('sub-', '')) % demoVideos.length;
+    return demoVideos[videoIndex - 1 >= 0 ? videoIndex - 1 : 0];
   };
 
   const renderTable = () => (
-    <div className="rounded-md border overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Submitted</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Video Preview</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredSubmissions.length > 0 ? filteredSubmissions.map((submission) => (
-            <TableRow key={submission.id}>
-              <TableCell className="font-medium">
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Name
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Email
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Location
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Submitted
+            </th>
+            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {filteredSubmissions.map((submission) => (
+            <tr 
+              key={submission.id}
+              className={`hover:bg-gray-100 transition-colors ${getStatusBackground(submission.status)}`}
+            >
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                 {submission.firstName} {submission.lastName}
-              </TableCell>
-              <TableCell>{submission.email}</TableCell>
-              <TableCell>{formatDate(submission.submittedAt)}</TableCell>
-              <TableCell>{getStatusBadge(submission.status)}</TableCell>
-              <TableCell>
-                {submission.videoPath ? (
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {submission.email}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {submission.location}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {formatDate(submission.submittedAt)}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <div className="flex justify-end gap-2">
                   <Button 
                     variant="outline" 
-                    size="sm" 
-                    onClick={() => setSelectedSubmission(submission)}
-                  >
-                    Preview
-                  </Button>
-                ) : (
-                  <span className="text-muted-foreground text-sm">No video</span>
-                )}
-              </TableCell>
-              <TableCell>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
                     size="sm"
-                    disabled={submission.status === 'approved' || processingId === submission.id}
-                    onClick={() => handleApprove(submission.id)}
+                    onClick={() => handleOpenDetails(submission)}
                   >
-                    <Check className="h-4 w-4" />
+                    View Details
                   </Button>
+                  
                   <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={submission.status === 'rejected' || processingId === submission.id}
-                    onClick={() => handleReject(submission.id)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={processingId === submission.id || !submission.videoPath}
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleDownload(submission.id)}
+                    title="Download Video"
                   >
                     <Download className="h-4 w-4" />
                   </Button>
+                  
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedSubmission(submission)}
-                  >
-                    <FileText className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleContactSubmitter(submission.email)}
+                    title="Email Submitter"
                   >
                     <Mail className="h-4 w-4" />
                   </Button>
                 </div>
-              </TableCell>
-            </TableRow>
-          )) : (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
-                No submissions found
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 
   const renderGrid = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {filteredSubmissions.length > 0 ? filteredSubmissions.map((submission) => (
-        <Card key={submission.id} className="overflow-hidden flex flex-col">
-          {submission.videoPath && (
-            <div className="bg-gray-100 w-full relative">
-              <AspectRatio ratio={16 / 9}>
-                <video 
-                  src={getVideoSrc(submission)}
-                  controls 
-                  className="w-full h-full object-cover"
-                  poster="/placeholder.svg"
-                />
-              </AspectRatio>
-            </div>
-          )}
-          <div className="p-4 flex-1 flex flex-col">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-medium">{submission.firstName} {submission.lastName}</h3>
-              {getStatusBadge(submission.status)}
-            </div>
-            <p className="text-sm text-gray-600 mb-1">{submission.email}</p>
-            <p className="text-xs text-gray-500 mb-3">{formatDate(submission.submittedAt)}</p>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {filteredSubmissions.map((submission) => (
+        <div 
+          key={submission.id}
+          className={`border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow ${getStatusBackground(submission.status)}`}
+        >
+          <div className="bg-gray-100 w-full relative">
+            <AspectRatio ratio={16 / 9}>
+              <video 
+                src={getVideoSrc(submission)}
+                controls 
+                className="w-full h-full object-cover"
+                poster="/placeholder.svg"
+              />
+            </AspectRatio>
+          </div>
+          
+          <div className="p-4">
+            <h3 className="font-bold text-lg">{submission.firstName} {submission.lastName}</h3>
+            <p className="text-sm text-gray-500">{submission.email}</p>
+            <p className="text-sm text-gray-500">{submission.location}</p>
+            <p className="text-sm text-gray-600 mt-2">
+              <Clock className="inline-block mr-1 h-4 w-4" />
+              {formatDate(submission.submittedAt)}
+            </p>
             
-            <div className="mt-auto flex flex-wrap gap-2">
-              <Button
-                variant="outline"
+            {submission.description && (
+              <p className="text-sm mt-2 line-clamp-2">{submission.description}</p>
+            )}
+            
+            <div className="flex flex-wrap gap-1 mt-3">
+              <Button 
+                variant="outline" 
                 size="sm"
-                disabled={submission.status === 'approved' || processingId === submission.id}
-                onClick={() => handleApprove(submission.id)}
+                onClick={() => handleOpenDetails(submission)}
               >
-                <Check className="h-4 w-4 mr-1" /> Approve
+                View Details
               </Button>
+              
               <Button
-                variant="outline"
-                size="sm"
-                disabled={submission.status === 'rejected' || processingId === submission.id}
-                onClick={() => handleReject(submission.id)}
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDownload(submission.id)}
+                title="Download Video"
               >
-                <X className="h-4 w-4 mr-1" /> Reject
+                <Download className="h-4 w-4" />
               </Button>
+              
               <Button
-                variant="outline"
-                size="sm"
-                disabled={processingId === submission.id}
-                onClick={() => setSelectedSubmission(submission)}
+                variant="ghost"
+                size="icon"
+                onClick={() => handleContactSubmitter(submission.email)}
+                title="Email Submitter"
               >
-                <FileText className="h-4 w-4 mr-1" /> Details
+                <Mail className="h-4 w-4" />
               </Button>
             </div>
           </div>
-        </Card>
-      )) : (
-        <div className="col-span-full text-center py-10 text-muted-foreground">
-          No submissions found
         </div>
-      )}
+      ))}
     </div>
   );
+  
+  const filterSubmissionsByStatus = (status: string) => {
+    return filteredSubmissions.filter(submission => submission.status === status);
+  };
 
   return (
-    <AdminLayout title="Video Submissions">
-      <div className="space-y-6">
-        {/* Search and filters */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, email, or location..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
-          <Button 
-            variant="outline" 
-            onClick={() => setViewMode(viewMode === 'table' ? 'grid' : 'table')}
+    <AdminLayout>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Video Submissions</h1>
+        
+        <div className="flex space-x-2">
+          <Button
+            variant={isFilterPanelOpen ? "default" : "outline"}
+            onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+            className="flex items-center space-x-1"
           >
-            {viewMode === 'table' ? 'Grid View' : 'Table View'}
+            <Filter className="h-4 w-4" />
+            <span>Filter</span>
           </Button>
           
           <Button 
             variant="outline"
-            onClick={() => handleExportData('csv')}
+            onClick={handleExportCSV}
+            className="flex items-center space-x-1"
           >
-            Export CSV
+            <FileSpreadsheet className="h-4 w-4" />
+            <span>Export CSV</span>
           </Button>
           
           <Button 
             variant="outline"
-            onClick={() => handleExportData('json')}
+            onClick={handleExportJSON}
+            className="flex items-center space-x-1"
           >
-            Export JSON
+            <FileJson className="h-4 w-4" />
+            <span>Export JSON</span>
+          </Button>
+          
+          <Button
+            variant="outline"
+            onClick={() => setView(view === 'table' ? 'grid' : 'table')}
+          >
+            {view === 'table' ? (
+              <GridIcon className="h-4 w-4" />
+            ) : (
+              <ListIcon className="h-4 w-4" />
+            )}
           </Button>
         </div>
-        
-        {/* Filter options */}
-        <div className="bg-muted/40 p-4 rounded-md">
-          <h3 className="font-medium mb-3">Filters</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Date Range</label>
-              <select 
-                className="w-full rounded-md border border-input p-2 bg-background" 
-                value={filters.dateRange}
-                onChange={(e) => setFilters({...filters, dateRange: e.target.value})}
-              >
-                {Object.keys(dateFilters).map(key => (
-                  <option key={key} value={key}>{dateFilters[key].label}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium mb-1 block">Own Recording</label>
-              <select 
-                className="w-full rounded-md border border-input p-2 bg-background"
-                value={filters.ownRecording === null ? '' : String(filters.ownRecording)}
-                onChange={(e) => {
-                  const value = e.target.value === '' ? null : e.target.value === 'true';
-                  setFilters({...filters, ownRecording: value});
-                }}
-              >
-                <option value="">Any</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium mb-1 block">Want Credit</label>
-              <select 
-                className="w-full rounded-md border border-input p-2 bg-background"
-                value={filters.wantCredit === null ? '' : String(filters.wantCredit)}
-                onChange={(e) => {
-                  const value = e.target.value === '' ? null : e.target.value === 'true';
-                  setFilters({...filters, wantCredit: value});
-                }}
-              >
-                <option value="">Any</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium mb-1 block">PayPal Email</label>
-              <select 
-                className="w-full rounded-md border border-input p-2 bg-background"
-                value={filters.hasPaypalEmail === null ? '' : String(filters.hasPaypalEmail)}
-                onChange={(e) => {
-                  const value = e.target.value === '' ? null : e.target.value === 'true';
-                  setFilters({...filters, hasPaypalEmail: value});
-                }}
-              >
-                <option value="">Any</option>
-                <option value="true">Provided</option>
-                <option value="false">Missing</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium mb-1 block">Status</label>
-              <select 
-                className="w-full rounded-md border border-input p-2 bg-background"
-                value={filters.status}
-                onChange={(e) => setFilters({...filters, status: e.target.value})}
-              >
-                <option value="all">All</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        
-        {/* Submissions */}
-        <Card className="p-6">
-          <Tabs defaultValue="submissions" className="w-full">
-            <TabsList className="mb-6">
-              <TabsTrigger value="submissions">Submissions ({filteredSubmissions.length})</TabsTrigger>
-            </TabsList>
-            <TabsContent value="submissions">
-              {viewMode === 'table' ? renderTable() : renderGrid()}
-            </TabsContent>
-          </Tabs>
-        </Card>
       </div>
       
-      {/* Detail dialog */}
+      <div className="mb-6 relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input 
+          placeholder="Search by name, email, or location..." 
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+      
+      {isFilterPanelOpen && (
+        <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <h3 className="font-semibold mb-2">Date Range</h3>
+              <div className="flex items-center space-x-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      {dateRange.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "MMM d, yyyy")} - 
+                            {format(dateRange.to, "MMM d, yyyy")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "MMM d, yyyy")
+                        )
+                      ) : (
+                        <span>Pick a date range</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="range"
+                      selected={{
+                        from: dateRange.from,
+                        to: dateRange.to,
+                      }}
+                      onSelect={(range) => 
+                        setDateRange({ 
+                          from: range?.from, 
+                          to: range?.to
+                        })
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold mb-2">Filter Options</h3>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="own-recording" 
+                    checked={filterOptions.ownRecording} 
+                    onCheckedChange={() => handleFilterToggle('ownRecording')}
+                  />
+                  <label htmlFor="own-recording" className="text-sm">Own Recording Only</label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="want-credit" 
+                    checked={filterOptions.wantCredit} 
+                    onCheckedChange={() => handleFilterToggle('wantCredit')}
+                  />
+                  <label htmlFor="want-credit" className="text-sm">Want Credit Only</label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="missing-paypal" 
+                    checked={filterOptions.missingPaypal} 
+                    onCheckedChange={() => handleFilterToggle('missingPaypal')}
+                  />
+                  <label htmlFor="missing-paypal" className="text-sm">Missing PayPal Email</label>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold mb-2">Status</h3>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="pending" 
+                    checked={filterOptions.pending} 
+                    onCheckedChange={() => handleFilterToggle('pending')}
+                  />
+                  <label htmlFor="pending" className="text-sm">Pending</label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="approved" 
+                    checked={filterOptions.approved} 
+                    onCheckedChange={() => handleFilterToggle('approved')}
+                  />
+                  <label htmlFor="approved" className="text-sm">Approved</label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="rejected" 
+                    checked={filterOptions.rejected} 
+                    onCheckedChange={() => handleFilterToggle('rejected')}
+                  />
+                  <label htmlFor="rejected" className="text-sm">Rejected</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4 flex justify-end">
+            <Button variant="outline" onClick={resetFilters}>Reset Filters</Button>
+          </div>
+        </div>
+      )}
+      
+      <Tabs defaultValue="all" className="mb-6">
+        <TabsList>
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="pending">Pending</TabsTrigger>
+          <TabsTrigger value="approved">Approved</TabsTrigger>
+          <TabsTrigger value="rejected">Rejected</TabsTrigger>
+        </TabsList>
+        <TabsContent value="all">
+          {filteredSubmissions.length === 0 ? (
+            <div className="text-center py-12 border rounded-lg bg-gray-50">
+              <p className="text-gray-500">No submissions match your current filters</p>
+              <Button variant="link" onClick={resetFilters} className="mt-2">
+                Reset Filters
+              </Button>
+            </div>
+          ) : (
+            view === 'table' ? renderTable() : renderGrid()
+          )}
+        </TabsContent>
+        <TabsContent value="pending">
+          {filterSubmissionsByStatus('pending').length === 0 ? (
+            <div className="text-center py-12 border rounded-lg bg-gray-50">
+              <p className="text-gray-500">No pending submissions match your current filters</p>
+              <Button variant="link" onClick={resetFilters} className="mt-2">
+                Reset Filters
+              </Button>
+            </div>
+          ) : (
+            view === 'table' ? renderTable() : renderGrid()
+          )}
+        </TabsContent>
+        <TabsContent value="approved">
+          {filterSubmissionsByStatus('approved').length === 0 ? (
+            <div className="text-center py-12 border rounded-lg bg-gray-50">
+              <p className="text-gray-500">No approved submissions match your current filters</p>
+              <Button variant="link" onClick={resetFilters} className="mt-2">
+                Reset Filters
+              </Button>
+            </div>
+          ) : (
+            view === 'table' ? renderTable() : renderGrid()
+          )}
+        </TabsContent>
+        <TabsContent value="rejected">
+          {filterSubmissionsByStatus('rejected').length === 0 ? (
+            <div className="text-center py-12 border rounded-lg bg-gray-50">
+              <p className="text-gray-500">No rejected submissions match your current filters</p>
+              <Button variant="link" onClick={resetFilters} className="mt-2">
+                Reset Filters
+              </Button>
+            </div>
+          ) : (
+            view === 'table' ? renderTable() : renderGrid()
+          )}
+        </TabsContent>
+      </Tabs>
+      
+      {/* Submission Details Dialog */}
       {selectedSubmission && (
-        <Dialog open={!!selectedSubmission} onOpenChange={() => setSelectedSubmission(null)}>
+        <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Submission Details</DialogTitle>
@@ -512,145 +587,146 @@ const AdminSubmissions: React.FC = () => {
             </DialogHeader>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                {selectedSubmission.videoPath ? (
-                  <div className="mb-6">
-                    <AspectRatio ratio={16 / 9}>
-                      <video 
-                        src={getVideoSrc(selectedSubmission)}
-                        controls 
-                        className="rounded-md w-full h-full object-cover"
-                        poster="/placeholder.svg"
-                      />
-                    </AspectRatio>
-                    <div className="mt-2 flex gap-2">
-                      <Button 
-                        variant="secondary" 
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => handleDownload(selectedSubmission.id)}
-                        disabled={processingId === selectedSubmission.id}
-                      >
-                        <Download className="h-4 w-4 mr-2" /> Download Video
-                      </Button>
-                    </div>
+                {/* Video Preview */}
+                <div className="mb-6">
+                  <AspectRatio ratio={16 / 9}>
+                    <video 
+                      src={getVideoSrc(selectedSubmission)}
+                      controls 
+                      className="rounded-md w-full h-full object-cover"
+                      poster="/placeholder.svg"
+                    />
+                  </AspectRatio>
+                  <div className="mt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => handleDownload(selectedSubmission.id)}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Video
+                    </Button>
                   </div>
-                ) : (
-                  <div className="bg-muted/50 rounded-md p-6 flex items-center justify-center mb-6">
-                    <p className="text-muted-foreground">No video available</p>
-                  </div>
-                )}
+                </div>
                 
-                <div className="space-y-4">
-                  <h3 className="font-medium">Admin Notes</h3>
-                  <Textarea 
-                    placeholder="Add notes about this submission..."
-                    rows={4}
-                    className="w-full"
-                    defaultValue={selectedSubmission.adminNotes || ''}
-                    onBlur={(e) => handleSaveNote(selectedSubmission.id, e.target.value)}
-                  />
-                  
-                  <div className="flex gap-2">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      disabled={selectedSubmission.status === 'approved' || processingId === selectedSubmission.id}
+                {/* Status Management */}
+                <div className="mb-6">
+                  <h3 className="font-semibold mb-2">Submission Status</h3>
+                  <div className="flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 bg-green-50 hover:bg-green-100 border-green-200"
                       onClick={() => handleApprove(selectedSubmission.id)}
-                      className="flex-1"
                     >
-                      <Check className="h-4 w-4 mr-2" /> Approve
+                      <Check className="h-4 w-4 mr-2 text-green-600" />
+                      Approve
                     </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={selectedSubmission.status === 'rejected' || processingId === selectedSubmission.id}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 bg-red-50 hover:bg-red-100 border-red-200"
                       onClick={() => handleReject(selectedSubmission.id)}
-                      className="flex-1"
                     >
-                      <X className="h-4 w-4 mr-2" /> Reject
+                      <X className="h-4 w-4 mr-2 text-red-600" />
+                      Reject
                     </Button>
                   </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleContactSubmitter(selectedSubmission.email)}
-                    className="w-full"
+                </div>
+                
+                {/* Admin Notes */}
+                <div className="mb-6">
+                  <h3 className="font-semibold mb-2">Admin Notes</h3>
+                  <Textarea 
+                    value={adminNote} 
+                    onChange={(e) => setAdminNote(e.target.value)}
+                    rows={4}
+                    className="resize-none w-full"
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                    onClick={() => handleSaveNote(selectedSubmission.id)}
                   >
-                    <Mail className="h-4 w-4 mr-2" /> Contact Submitter
+                    Save Notes
                   </Button>
                 </div>
+                
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={() => handleDelete(selectedSubmission.id)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Submission
+                </Button>
               </div>
               
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-medium mb-4">Submission Information</h3>
-                  <dl className="space-y-2">
-                    <div className="flex justify-between py-1 border-b">
-                      <dt className="text-muted-foreground">Status</dt>
-                      <dd>{getStatusBadge(selectedSubmission.status)}</dd>
-                    </div>
-                    <div className="flex justify-between py-1 border-b">
-                      <dt className="text-muted-foreground">Name</dt>
-                      <dd>{selectedSubmission.firstName} {selectedSubmission.lastName}</dd>
-                    </div>
-                    <div className="flex justify-between py-1 border-b">
-                      <dt className="text-muted-foreground">Email</dt>
-                      <dd>{selectedSubmission.email}</dd>
-                    </div>
-                    <div className="flex justify-between py-1 border-b">
-                      <dt className="text-muted-foreground">Date Submitted</dt>
-                      <dd>{formatDate(selectedSubmission.submittedAt)}</dd>
-                    </div>
-                    <div className="flex justify-between py-1 border-b">
-                      <dt className="text-muted-foreground">Location</dt>
-                      <dd>{selectedSubmission.location || 'Not provided'}</dd>
-                    </div>
-                    <div className="flex justify-between py-1 border-b">
-                      <dt className="text-muted-foreground">Own Recording</dt>
-                      <dd>{selectedSubmission.isOwnRecording ? 'Yes' : 'No'}</dd>
-                    </div>
-                    {!selectedSubmission.isOwnRecording && selectedSubmission.recorderName && (
-                      <div className="flex justify-between py-1 border-b">
-                        <dt className="text-muted-foreground">Recorded By</dt>
-                        <dd>{selectedSubmission.recorderName}</dd>
-                      </div>
-                    )}
-                    <div className="flex justify-between py-1 border-b">
-                      <dt className="text-muted-foreground">Want Credit</dt>
-                      <dd>{selectedSubmission.wantCredit ? 'Yes' : 'No'}</dd>
-                    </div>
-                    {selectedSubmission.wantCredit && selectedSubmission.creditPlatform && (
-                      <div className="flex justify-between py-1 border-b">
-                        <dt className="text-muted-foreground">Credit Platform</dt>
-                        <dd>{selectedSubmission.creditPlatform}</dd>
-                      </div>
-                    )}
-                    {selectedSubmission.wantCredit && selectedSubmission.creditUsername && (
-                      <div className="flex justify-between py-1 border-b">
-                        <dt className="text-muted-foreground">Username</dt>
-                        <dd>{selectedSubmission.creditUsername}</dd>
-                      </div>
-                    )}
-                    <div className="flex justify-between py-1 border-b">
-                      <dt className="text-muted-foreground">PayPal Email</dt>
-                      <dd>{selectedSubmission.paypalEmail || 'Not provided'}</dd>
-                    </div>
-                    <div className="flex justify-between py-1 border-b">
-                      <dt className="text-muted-foreground">Signature Provided</dt>
-                      <dd>{selectedSubmission.signatureProvided ? 'Yes' : 'No'}</dd>
-                    </div>
-                  </dl>
-                </div>
-                
-                {selectedSubmission.description && (
+              <div>
+                {/* Submission Details */}
+                <div className="space-y-4">
                   <div>
-                    <h3 className="font-medium mb-2">Description</h3>
-                    <div className="bg-muted/30 p-4 rounded-md">
-                      <p className="text-sm">{selectedSubmission.description}</p>
+                    <h3 className="font-semibold mb-2">Submitter Information</h3>
+                    <div className="space-y-1">
+                      <p><span className="font-medium">Name:</span> {selectedSubmission.firstName} {selectedSubmission.lastName}</p>
+                      <p>
+                        <span className="font-medium">Email:</span> {selectedSubmission.email}
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="ml-2 h-6 p-1"
+                          onClick={() => handleContactSubmitter(selectedSubmission.email)}
+                        >
+                          <Mail className="h-3 w-3" />
+                        </Button>
+                      </p>
+                      {selectedSubmission.location && (
+                        <p><span className="font-medium">Location:</span> {selectedSubmission.location}</p>
+                      )}
+                      <p><span className="font-medium">Submitted:</span> {formatDate(selectedSubmission.submittedAt)}</p>
                     </div>
                   </div>
-                )}
+                  
+                  <div>
+                    <h3 className="font-semibold mb-2">Video Details</h3>
+                    <div className="space-y-1">
+                      <p>
+                        <span className="font-medium">Is own recording:</span> {selectedSubmission.isOwnRecording ? "Yes" : "No"}
+                      </p>
+                      {!selectedSubmission.isOwnRecording && selectedSubmission.recorderName && (
+                        <p><span className="font-medium">Recorded by:</span> {selectedSubmission.recorderName}</p>
+                      )}
+                      <p>
+                        <span className="font-medium">Wants clip credit:</span> {selectedSubmission.wantCredit ? "Yes" : "No"}
+                      </p>
+                      {selectedSubmission.wantCredit && (
+                        <>
+                          {selectedSubmission.creditPlatform && (
+                            <p><span className="font-medium">Platform:</span> {selectedSubmission.creditPlatform}</p>
+                          )}
+                          {selectedSubmission.creditUsername && (
+                            <p><span className="font-medium">Username:</span> {selectedSubmission.creditUsername}</p>
+                          )}
+                        </>
+                      )}
+                      {selectedSubmission.paypalEmail && (
+                        <p><span className="font-medium">PayPal Email:</span> {selectedSubmission.paypalEmail}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {selectedSubmission.description && (
+                    <div>
+                      <h3 className="font-semibold mb-2">Description</h3>
+                      <div className="bg-gray-50 p-3 rounded border">
+                        {selectedSubmission.description}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </DialogContent>
