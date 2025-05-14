@@ -2,15 +2,52 @@
 import React from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAdminService, DashboardStats } from '@/services/adminService';
-import { Check, X, Clock, Video, Upload, UserCheck, ArrowUpRight } from 'lucide-react';
+import { useAdminService, DashboardStats, SubmissionData } from '@/services/adminService';
+import { Check, X, Clock, Video, Upload, UserCheck, ArrowUpRight, Eye, Download } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { format } from 'date-fns';
 import WorkflowExplainer from '@/components/admin/WorkflowExplainer';
+import { Button } from '@/components/ui/button';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { Badge } from '@/components/ui/badge';
+import { Link } from 'react-router-dom';
 
 const AdminDashboard: React.FC = () => {
-  const { getDashboardStats } = useAdminService();
+  const { getDashboardStats, getSubmissions, getVideoUrl } = useAdminService();
   const stats = getDashboardStats();
+  
+  // Get the most recent submissions for the dashboard
+  const recentSubmissions = getSubmissions()
+    .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+    .slice(0, 3);
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return format(date, 'MMM d, yyyy h:mm a');
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  // Get status badge
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <Badge className="bg-green-100 text-green-800 border-green-300">
+          <Check className="w-3 h-3 mr-1" /> Approved
+        </Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-100 text-red-800 border-red-300">
+          <X className="w-3 h-3 mr-1" /> Rejected
+        </Badge>;
+      default:
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+          <Clock className="w-3 h-3 mr-1" /> Pending
+        </Badge>;
+    }
+  };
 
   // Get current date for the dashboard title
   const today = new Date();
@@ -63,10 +100,10 @@ const AdminDashboard: React.FC = () => {
                   Waiting for approval
                 </p>
                 {stats.pendingSubmissions > 0 && (
-                  <a href="/admin/submissions" className="text-xs text-blue-500 flex items-center mt-1 hover:underline">
+                  <Link to="/admin/submissions" className="text-xs text-blue-500 flex items-center mt-1 hover:underline">
                     Review submissions
                     <ArrowUpRight className="h-3 w-3 ml-1" />
-                  </a>
+                  </Link>
                 )}
               </CardContent>
             </Card>
@@ -101,6 +138,57 @@ const AdminDashboard: React.FC = () => {
               </CardContent>
             </Card>
           </div>
+          
+          {/* Recent Submissions Section */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Recent Submissions</CardTitle>
+              <CardDescription>
+                The latest video submissions waiting for review
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentSubmissions.length === 0 ? (
+                <div className="text-center py-6 text-gray-500">
+                  No submissions yet
+                </div>
+              ) : (
+                <div className="grid gap-6 md:grid-cols-3">
+                  {recentSubmissions.map((submission) => (
+                    <div key={submission.id} className="border rounded-lg overflow-hidden shadow-sm">
+                      <AspectRatio ratio={16/9}>
+                        <video 
+                          src={getVideoUrl(submission.id)}
+                          controls 
+                          className="w-full h-full object-cover"
+                          poster="/placeholder.svg"
+                        />
+                      </AspectRatio>
+                      <div className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-medium">{submission.firstName} {submission.lastName}</h3>
+                          {getStatusBadge(submission.status)}
+                        </div>
+                        <p className="text-sm text-gray-500 mb-2">{formatDate(submission.submittedAt)}</p>
+                        <div className="flex space-x-2">
+                          <Link to={`/admin/submissions?id=${submission.id}`}>
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-3 w-3 mr-1" /> View
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="mt-4 text-center">
+                <Link to="/admin/submissions">
+                  <Button variant="outline">View All Submissions</Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
           
           <div className="grid gap-4 md:grid-cols-2">
             <Card>

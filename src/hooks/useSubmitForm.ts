@@ -9,6 +9,7 @@ import { useVideoHandler } from "./form/useVideoHandler";
 import { useFormDataBuilder } from "./form/useFormDataBuilder";
 import { useSimulatedUploadService } from '@/services/simulatedUploadService';
 import { formSchema } from "./form/formSchema";
+import { addSubmission } from "@/services/adminService";
 
 export type SubmitFormValues = z.infer<typeof formSchema>;
 
@@ -33,6 +34,7 @@ export function useSubmitForm() {
       isOwnRecording: true,
       wantCredit: false,
       signature: "",
+      paypalEmail: null,
     },
   });
 
@@ -98,6 +100,27 @@ export function useSubmitForm() {
         setSubmitting(false);
         return;
       }
+      
+      // Add submission to admin service
+      addSubmission({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        location: data.location,
+        description: data.hasDescription ? data.description : undefined,
+        folderPath: folderPath,
+        tempVideoPath: data.dropboxFilePath,
+        signatureProvided: !!data.signature,
+        submittedAt: new Date().toISOString(),
+        status: 'pending',
+        isOwnRecording: data.isOwnRecording,
+        recorderName: !data.isOwnRecording ? data.recorderName : undefined,
+        wantCredit: data.wantCredit,
+        creditPlatform: data.wantCredit ? data.creditPlatform : undefined,
+        creditUsername: data.wantCredit ? data.creditUsername : undefined,
+        paypalEmail: data.paypalEmail || undefined,
+        uploadedToDropbox: false
+      });
       
       // Simulate API submission delay
       await new Promise(resolve => setTimeout(resolve, 1500));

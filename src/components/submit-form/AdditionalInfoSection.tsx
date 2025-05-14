@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
@@ -244,6 +243,7 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({ form }) =
                   placeholder="email@example.com" 
                   type="email"
                   {...field} 
+                  value={field.value || ''}
                   className="bg-white border-gray-300 text-gray-900 pl-10" 
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

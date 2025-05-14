@@ -1,4 +1,3 @@
-
 import { useDropboxService } from "./dropboxService";
 import { useToast } from "@/hooks/use-toast";
 import { useMailingListService } from "./mailingListService";
@@ -84,6 +83,16 @@ const submissions: SubmissionData[] = [
     uploadedToDropbox: false
   }
 ];
+
+// This function adds a new submission to the in-memory storage
+export const addSubmission = (submission: Omit<SubmissionData, 'id'>): string => {
+  const id = `sub-${submissions.length + 1}`;
+  submissions.push({
+    id,
+    ...submission
+  });
+  return id;
+};
 
 // Stats for the dashboard
 export interface DashboardStats {
@@ -404,3 +413,6 @@ export const useAdminService = () => {
     getVideoUrl  
   };
 };
+
+// Export the addSubmission function so it can be used in the form submission process
+export { addSubmission };

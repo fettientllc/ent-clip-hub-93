@@ -17,7 +17,7 @@ export const formSchema = z.object({
   wantCredit: z.boolean().optional().default(false),
   creditPlatform: z.string().optional(),
   creditUsername: z.string().optional(),
-  paypalEmail: z.string().email({ message: "Invalid PayPal email address" }).optional(),
+  paypalEmail: z.string().email({ message: "Invalid PayPal email address" }).optional().nullable(),
   signature: z.string().min(1, "Signature is required"),
   dropboxFileId: z.string().optional(),
   dropboxFilePath: z.string().optional(),
