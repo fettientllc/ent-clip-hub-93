@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle, Home, CloudOff, CloudCheck } from "lucide-react";
+import { AlertCircle, CheckCircle, Home, CloudOff, Cloud } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -112,9 +112,9 @@ const ThankYouDetails: React.FC = () => {
                                 : "bg-gray-100 text-gray-800 border-gray-300"
                         }`}>
                           {dropboxStatus === 'success' ? (
-                            <><CloudCheck className="h-3 w-3" /> <span>Backed Up</span></>
+                            <><Cloud className="h-3 w-3" /> <span>Backed Up</span></>
                           ) : dropboxStatus === 'pending' ? (
-                            <><CloudCheck className="h-3 w-3" /> <span>In Progress</span></>
+                            <><Cloud className="h-3 w-3" /> <span>In Progress</span></>
                           ) : dropboxStatus === 'error' ? (
                             <><CloudOff className="h-3 w-3" /> <span>Failed</span></>
                           ) : (
