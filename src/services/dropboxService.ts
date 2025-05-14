@@ -47,7 +47,9 @@ const getAccessToken = async (): Promise<string> => {
   // For demonstration, we'll use placeholder values
   const clientId = process.env.DROPBOX_CLIENT_ID || DROPBOX_APP_KEY;
   const clientSecret = process.env.DROPBOX_CLIENT_SECRET || "qxdg9tnwroye6xg";
-  const refreshToken = process.env.DROPBOX_REFRESH_TOKEN || "sl.BgTxf6CXTVM4DXM1lVTZkppS9bW5bNMOFPTn5XgFf5GGmFExO6ZvQYsXGjjmOuRWxoOBqzHR2jLcDfppF3zEvuV2W34hXzCt9QsdU1BFBq7j8ycW4JKYi3WKvXzWa2fWZ_NbHjjV";
+  
+  // Using the new, correctly formatted refresh token
+  const refreshToken = process.env.DROPBOX_REFRESH_TOKEN || "sl.u.AFsaq5x0NLsTB4-e0OjxvZq2n-gxAJpWA33lqnfJZQjNpXKXkHeVuCv4zC5-rJgO8-dVzaaYy1NQme-7XpyhwMGd7ZP_xfRDqjFvPbhGB7ObNv_fgzk6ASFtkysLxHwoZN7Nl14BdQnDoAmcwAzieg04hHjjJKapPluwxZTrgukJi9TEPDcvqgyx-cZtwPkkCK1pzSYHwSZnm6l6eglYTMWjd-dpB-yGOVRmdxEG20ENwDanA0QV93pXaks8HnXlIoMFN7S36-lvIOipTR5eTRZEYl6cjm2tUUDItgswWATnqqFaojXMu92W6cWJ09wZQXe5Y_UHIkZMBMeMFecpsoEaN3muFleQGBCzJmz4g2SGrwazdSVV_Q_ZnwLTZBn-gX2r0BIk_f8MlVBJtpBVnRu9lOImc-Hm-vXz3k6_gOQcxn4BExFCTzCiWAyRUsaDiL-9h25jJPl0Mj5m_dc_D7k0fvWjVkMTi3TuMzF2HpIMiR4TSzxceGghY4EpyHcDeLaoNwPkbE2w9X5PrOT1RXNKDFQBHzqw57azwg1pGNx4_xe99Fx8CuM66bwkHt1SIXNAgo0yxAl-L9Bcq7A8OgBj6tNHdcWbtz-xGUl9ASIIcBRfy_aJTY9Fu5lZ1ggzlNVpxzJ7gJ3ACg-kzWq9J8sk00K8OfC5KU906H5bq58PqgFC7nsgfvKxnfAghTE2SixhTT9jdZxkfiRXz2IMguZcMFFTpSGByWNRKJPVDq0Q4etj4qPSjrwlAYqKJ9hFJEVEkmVnuLlxQRMy88ZzwLwESpqAJ2cXcFhawUzQjVZVmNtPGeg06dmla0kivV3IczFN0FXftdVPHe7bwjFLLRQeMRsrdCPOPnLkhtyQiE9UHk8Av8Gg7sMt9DSHw2_VKiICDGeUe4zvWUnjfUMEi5MTiXQQRQLY0n5x5hOnItKyiqakNwmuEmQCjNIVyVpAf0A8Y--p9l_AgWhxNbXTja_jaMdThpx8csG70Sm1GaCvURYIHuXh39UYmm4K-KgaUZyHflC_KmqqlNyDKm_0b-aiy2Daso7TxfiWP6r-Pj3KiWdZb58Yu3Q4G5RX_JC4n3prJjpwOZzlYAfVyyQGrMGJhpvflngKOhZ36wYz2Cso3y6sg1J7j_LzQAdCApUPNi0kDyrGF6j9qHBdCTVTxwPDlAveWbZs-JctnMDYBdm0Z14HGkCM0aO9LBfwGRNRCxhUhtrsWI-FHhU57dYW-GCNNOOB5-AMWHArtSdnMyXiWSYoKBwPIJ-fJn4ZcfZ9k0q2HzLmtNwP3ijg-H-qA0nwSneiOk600JQdXZ28227m88sgSSbHMnS_4YUIANNJL9OeYOGL_w4FJNd7iTz00gUhSzrg5Zc9iA7LXdA1EMywpXQyKBG3Q1tdbdJ--prjFV3JcS88HCKizNR1muGvjIes";
   
   try {
     // If this were a real server environment, we'd make this request server-side
@@ -76,7 +78,7 @@ const getAccessToken = async (): Promise<string> => {
     const data = await response.json();
     console.log("Got new access token, expires in:", data.expires_in);
     
-    // Cache the token with expiration time (14400 seconds / 4 hours)
+    // Cache the token with expiration time (4 hours typically)
     cachedToken = {
       access_token: data.access_token,
       // Set expiration 5 minutes before actual expiry to be safe
