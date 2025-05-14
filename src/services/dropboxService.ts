@@ -46,7 +46,7 @@ const getAccessToken = async (): Promise<string> => {
   // In a real environment, these would come from environment variables
   // For demonstration, we'll use placeholder values
   const clientId = process.env.DROPBOX_CLIENT_ID || DROPBOX_APP_KEY;
-  const clientSecret = process.env.DROPBOX_CLIENT_SECRET || "placeholder_secret";
+  const clientSecret = process.env.DROPBOX_CLIENT_SECRET || "qxdg9tnwroye6xg";
   const refreshToken = process.env.DROPBOX_REFRESH_TOKEN || "placeholder_refresh_token";
   
   try {
