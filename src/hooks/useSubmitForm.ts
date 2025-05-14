@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,10 +29,16 @@ export const useSubmitForm = () => {
       lastName: "",
       email: "",
       location: "",
+      hasDescription: false,
       description: "",
       agreeTerms: false,
       noOtherSubmission: false,
       keepInTouch: false,
+      isOwnRecording: true,
+      wantCredit: false,
+      creditPlatform: "",
+      creditUsername: "",
+      paypalEmail: "",
       signature: "",
       dropboxFileId: undefined,
       dropboxFilePath: undefined,
@@ -87,10 +94,15 @@ export const useSubmitForm = () => {
         lastName: data.lastName,
         email: data.email,
         location: data.location,
-        description: data.description || "",
+        description: data.hasDescription ? data.description : "",
         agreeTerms: data.agreeTerms,
         noOtherSubmission: data.noOtherSubmission,
         keepInTouch: data.keepInTouch || false,
+        isOwnRecording: data.isOwnRecording,
+        wantCredit: data.wantCredit,
+        creditPlatform: data.wantCredit ? data.creditPlatform : "",
+        creditUsername: data.wantCredit ? data.creditUsername : "",
+        paypalEmail: data.paypalEmail || "",
         videoFileName: data.video.name,
         dropboxFileId: data.dropboxFileId,
         dropboxFilePath: data.dropboxFilePath,

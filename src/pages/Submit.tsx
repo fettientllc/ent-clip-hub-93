@@ -8,8 +8,10 @@ import PersonalInfoSection from '@/components/submit-form/PersonalInfoSection';
 import VideoUploadSection from '@/components/submit-form/VideoUploadSection';
 import LegalSection from '@/components/submit-form/LegalSection';
 import SignatureSection from '@/components/submit-form/SignatureSection';
+import AdditionalInfoSection from '@/components/submit-form/AdditionalInfoSection';
+import GuidelinesSection from '@/components/submit-form/GuidelinesSection';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader, AlertTriangle, WifiOff, RefreshCw } from "lucide-react";
+import { AlertCircle, Loader, RefreshCw } from "lucide-react";
 
 const Submit: React.FC = () => {
   const { 
@@ -58,6 +60,8 @@ const Submit: React.FC = () => {
     <SubmitFormLayout>
       <Form {...form}>
         <form onSubmit={handleSubmit} className="space-y-6">
+          <GuidelinesSection />
+          
           <PersonalInfoSection form={form} />
           
           <VideoUploadSection 
@@ -107,6 +111,8 @@ const Submit: React.FC = () => {
               </AlertDescription>
             </Alert>
           )}
+          
+          <AdditionalInfoSection form={form} />
           
           <LegalSection form={form} />
           
