@@ -87,7 +87,8 @@ export function useDropboxUploader({ onSuccess, onError }: UploaderOptions) {
     }, WARNING_TIMEOUT);
     
     try {
-      const result = await uploadFile(file, (progress) => {
+      // Fix the type error - pass the folderPath as a string, and pass the progress callback separately 
+      const result = await uploadFile(file, "/uploads", (progress) => {
         setUploadProgress(progress);
         
         // Calculate upload speed (simplified)
