@@ -8,6 +8,8 @@ export interface SubmissionData {
   firstName: string;
   lastName: string;
   email: string;
+  location?: string;
+  description?: string;
   parentFirstName?: string;
   parentLastName?: string;
   parentEmail?: string;
@@ -16,6 +18,13 @@ export interface SubmissionData {
   signatureProvided: boolean;
   submittedAt: string;
   status: 'pending' | 'approved' | 'rejected';
+  isOwnRecording?: boolean;
+  recorderName?: string;
+  wantCredit?: boolean;
+  creditPlatform?: string;
+  creditUsername?: string;
+  paypalEmail?: string;
+  adminNotes?: string;
 }
 
 // In-memory storage for demo purposes
@@ -26,30 +35,48 @@ const submissions: SubmissionData[] = [
     firstName: "John",
     lastName: "Doe",
     email: "john@example.com",
+    location: "New York, NY",
     folderPath: "/submissions/2023-05-14_John_Doe",
+    videoPath: "/submissions/2023-05-14_John_Doe/video.mp4",
     signatureProvided: true,
     submittedAt: "2025-05-12T15:30:00Z",
-    status: 'pending'
+    status: 'pending',
+    isOwnRecording: true,
+    wantCredit: false,
+    paypalEmail: "john@paypal.com"
   },
   {
     id: "sub-2",
     firstName: "Jane",
     lastName: "Smith",
     email: "jane@example.com",
+    location: "Los Angeles, CA",
+    description: "Short clip of sunset at the beach",
     folderPath: "/submissions/2023-05-13_Jane_Smith",
+    videoPath: "/submissions/2023-05-13_Jane_Smith/beach_sunset.mp4",
     signatureProvided: true,
     submittedAt: "2025-05-13T10:45:00Z",
-    status: 'pending'
+    status: 'pending',
+    isOwnRecording: false,
+    recorderName: "Sam Johnson",
+    wantCredit: true,
+    creditPlatform: "Instagram",
+    creditUsername: "@jane_captures",
+    paypalEmail: ""
   },
   {
     id: "sub-3",
     firstName: "Michael",
     lastName: "Johnson",
     email: "michael@example.com",
+    location: "Chicago, IL",
     folderPath: "/submissions/2023-05-14_Michael_Johnson",
+    videoPath: "/submissions/2023-05-14_Michael_Johnson/city_timelapse.mp4",
     signatureProvided: false,
     submittedAt: "2025-05-14T09:20:00Z",
-    status: 'pending'
+    status: 'pending',
+    isOwnRecording: true,
+    wantCredit: false
   }
 ];
 
@@ -202,6 +229,58 @@ export const useAdminService = () => {
     
     return false;
   };
+  
+  const addSubmissionNote = (id: string, note: string): boolean => {
+    const submissionIndex = submissions.findIndex(s => s.id === id);
+    
+    if (submissionIndex === -1) {
+      return false;
+    }
+    
+    const submission = submissions[submissionIndex];
+    submissions[submissionIndex] = {
+      ...submission,
+      adminNotes: note
+    };
+    
+    return true;
+  };
+  
+  const downloadVideo = async (id: string): Promise<boolean> => {
+    const submission = submissions.find(s => s.id === id);
+    
+    if (!submission || !submission.videoPath) {
+      toast({
+        title: "Error",
+        description: "Video not found",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    try {
+      // In a real implementation, this would download the actual file
+      // For this demo, we'll simulate a download
+      
+      // Create a fake download link that would point to the video
+      const a = document.createElement('a');
+      a.href = `https://example.com${submission.videoPath}`;
+      a.download = submission.videoPath.split('/').pop() || 'video.mp4';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      return true;
+    } catch (error) {
+      console.error("Error downloading video:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download video",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
 
   return {
     getSubmissions,
@@ -209,5 +288,7 @@ export const useAdminService = () => {
     approveSubmission,
     rejectSubmission,
     deleteSubmission,
+    addSubmissionNote,
+    downloadVideo
   };
 };
