@@ -2,9 +2,9 @@
 declare global {
   namespace NodeJS {
     interface ProcessEnv {
-      DROPBOX_CLIENT_ID?: string;
-      DROPBOX_CLIENT_SECRET?: string;
-      DROPBOX_REFRESH_TOKEN?: string;
+      VITE_DROPBOX_CLIENT_ID?: string;
+      VITE_DROPBOX_CLIENT_SECRET?: string;
+      VITE_DROPBOX_REFRESH_TOKEN?: string;
     }
   }
 }
