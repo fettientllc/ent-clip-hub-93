@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useAdminService, SubmissionData } from '@/services/adminService';
 import { 
@@ -14,7 +15,11 @@ import {
   FileSpreadsheet,
   FileJson,
   Clock,
-  Filter
+  Filter,
+  Eye,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +33,15 @@ import { useFilterService } from '@/services/filterService';
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from 'date-fns';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 const AdminSubmissions: React.FC = () => {
   const { 
@@ -46,6 +60,19 @@ const AdminSubmissions: React.FC = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<SubmissionData | null>(null);
   const [adminNote, setAdminNote] = useState('');
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState('');
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    action: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    action: () => {},
+  });
   
   // Get all submissions
   const allSubmissions = getSubmissions();
@@ -63,6 +90,16 @@ const AdminSubmissions: React.FC = () => {
     exportToCSV,
     exportToJSON
   } = useFilterService(allSubmissions);
+
+  // Memoize current tab count
+  const submissionCounts = useMemo(() => {
+    return {
+      all: filteredSubmissions.length,
+      pending: filteredSubmissions.filter(s => s.status === 'pending').length,
+      approved: filteredSubmissions.filter(s => s.status === 'approved').length,
+      rejected: filteredSubmissions.filter(s => s.status === 'rejected').length,
+    };
+  }, [filteredSubmissions]);
   
   // Handle opening submission details
   const handleOpenDetails = (submission: SubmissionData) => {
@@ -71,32 +108,85 @@ const AdminSubmissions: React.FC = () => {
     setIsDetailsOpen(true);
   };
   
-  // Handle approval
+  // Handle opening video in fullscreen modal
+  const handleOpenVideo = (submission: SubmissionData) => {
+    const videoUrl = getVideoSrc(submission);
+    setCurrentVideoUrl(videoUrl);
+    setIsVideoModalOpen(true);
+  };
+
+  // Confirmation dialog
+  const openConfirmationDialog = (title: string, message: string, action: () => void) => {
+    setConfirmationDialog({
+      isOpen: true,
+      title,
+      message,
+      action
+    });
+  };
+
+  const closeConfirmationDialog = () => {
+    setConfirmationDialog({
+      ...confirmationDialog,
+      isOpen: false,
+    });
+  };
+  
+  // Handle approval with confirmation
   const handleApprove = async (id: string) => {
-    const success = await approveSubmission(id);
-    if (success) {
-      // Refresh the list (in a real app, this might involve re-fetching)
-      setIsDetailsOpen(false);
-    }
-  };
-  
-  // Handle rejection
-  const handleReject = (id: string) => {
-    const success = rejectSubmission(id);
-    if (success) {
-      // Refresh the list
-      setIsDetailsOpen(false);
-    }
-  };
-  
-  // Handle delete
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this submission? This action cannot be undone.')) {
-      const success = deleteSubmission(id);
-      if (success) {
-        setIsDetailsOpen(false);
+    openConfirmationDialog(
+      "Confirm Approval",
+      "This will approve the submission and upload it to Dropbox. Continue?",
+      async () => {
+        closeConfirmationDialog();
+        const success = await approveSubmission(id);
+        if (success) {
+          setIsDetailsOpen(false);
+          toast({
+            title: "Submission Approved",
+            description: "The video has been approved and uploaded to Dropbox.",
+          });
+        }
       }
-    }
+    );
+  };
+  
+  // Handle rejection with confirmation
+  const handleReject = (id: string) => {
+    openConfirmationDialog(
+      "Confirm Rejection",
+      "This will reject the submission. Continue?",
+      () => {
+        closeConfirmationDialog();
+        const success = rejectSubmission(id);
+        if (success) {
+          setIsDetailsOpen(false);
+          toast({
+            title: "Submission Rejected",
+            description: "The video has been rejected."
+          });
+        }
+      }
+    );
+  };
+  
+  // Handle delete with confirmation
+  const handleDelete = (id: string) => {
+    openConfirmationDialog(
+      "Confirm Delete",
+      "Are you sure you want to delete this submission? This action cannot be undone.",
+      () => {
+        closeConfirmationDialog();
+        const success = deleteSubmission(id);
+        if (success) {
+          setIsDetailsOpen(false);
+          toast({
+            title: "Submission Deleted",
+            description: "The submission has been permanently deleted."
+          });
+        }
+      }
+    );
   };
   
   // Save admin note
@@ -128,6 +218,24 @@ const AdminSubmissions: React.FC = () => {
   // Download video
   const handleDownload = async (id: string) => {
     await downloadVideo(id);
+  };
+  
+  // Get status badge
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <Badge className="bg-green-100 text-green-800 border-green-300">
+          <CheckCircle className="w-3 h-3 mr-1" /> Approved
+        </Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-100 text-red-800 border-red-300">
+          <XCircle className="w-3 h-3 mr-1" /> Rejected
+        </Badge>;
+      default:
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+          <AlertCircle className="w-3 h-3 mr-1" /> Pending
+        </Badge>;
+    }
   };
   
   // Apply background color based on status
@@ -209,53 +317,58 @@ const AdminSubmissions: React.FC = () => {
   };
 
   const renderTable = () => (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Name
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Email
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Location
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Submitted
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+    <div className="overflow-x-auto rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Status</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Location</TableHead>
+            <TableHead>Submitted</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {filteredSubmissions.map((submission) => (
-            <tr 
+            <TableRow 
               key={submission.id}
-              className={`hover:bg-gray-100 transition-colors ${getStatusBackground(submission.status)}`}
+              className={`hover:bg-gray-100 transition-colors ${submission.status !== 'pending' ? getStatusBackground(submission.status) : ''}`}
             >
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              <TableCell>
+                {getStatusBadge(submission.status)}
+              </TableCell>
+              <TableCell className="font-medium">
                 {submission.firstName} {submission.lastName}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              </TableCell>
+              <TableCell>
                 {submission.email}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {submission.location}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              </TableCell>
+              <TableCell>
+                {submission.location || "—"}
+              </TableCell>
+              <TableCell>
                 {formatDate(submission.submittedAt)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              </TableCell>
+              <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => handleOpenDetails(submission)}
+                    title="View Details"
                   >
-                    View Details
+                    <Eye className="h-4 w-4 mr-1" />
+                    Details
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleOpenVideo(submission)}
+                    title="Preview Video"
+                  >
+                    <Eye className="h-4 w-4" />
                   </Button>
                   
                   <Button
@@ -276,11 +389,11 @@ const AdminSubmissions: React.FC = () => {
                     <Mail className="h-4 w-4" />
                   </Button>
                 </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 
@@ -300,12 +413,16 @@ const AdminSubmissions: React.FC = () => {
                 poster="/placeholder.svg"
               />
             </AspectRatio>
+            
+            <div className="absolute top-2 right-2">
+              {getStatusBadge(submission.status)}
+            </div>
           </div>
           
           <div className="p-4">
             <h3 className="font-bold text-lg">{submission.firstName} {submission.lastName}</h3>
             <p className="text-sm text-gray-500">{submission.email}</p>
-            <p className="text-sm text-gray-500">{submission.location}</p>
+            <p className="text-sm text-gray-500">{submission.location || "No location provided"}</p>
             <p className="text-sm text-gray-600 mt-2">
               <Clock className="inline-block mr-1 h-4 w-4" />
               {formatDate(submission.submittedAt)}
@@ -321,6 +438,7 @@ const AdminSubmissions: React.FC = () => {
                 size="sm"
                 onClick={() => handleOpenDetails(submission)}
               >
+                <Eye className="h-4 w-4 mr-1" />
                 View Details
               </Button>
               
@@ -363,7 +481,7 @@ const AdminSubmissions: React.FC = () => {
             onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
             className="flex items-center space-x-1"
           >
-            <Filter className="h-4 w-4" />
+            <Filter className="h-4 w-4 mr-1" />
             <span>Filter</span>
           </Button>
           
@@ -372,7 +490,7 @@ const AdminSubmissions: React.FC = () => {
             onClick={handleExportCSV}
             className="flex items-center space-x-1"
           >
-            <FileSpreadsheet className="h-4 w-4" />
+            <FileSpreadsheet className="h-4 w-4 mr-1" />
             <span>Export CSV</span>
           </Button>
           
@@ -381,13 +499,14 @@ const AdminSubmissions: React.FC = () => {
             onClick={handleExportJSON}
             className="flex items-center space-x-1"
           >
-            <FileJson className="h-4 w-4" />
+            <FileJson className="h-4 w-4 mr-1" />
             <span>Export JSON</span>
           </Button>
           
           <Button
             variant="outline"
             onClick={() => setView(view === 'table' ? 'grid' : 'table')}
+            title={view === 'table' ? 'Switch to Grid View' : 'Switch to Table View'}
           >
             {view === 'table' ? (
               <GridIcon className="h-4 w-4" />
@@ -519,11 +638,31 @@ const AdminSubmissions: React.FC = () => {
       )}
       
       <Tabs defaultValue="all" className="mb-6">
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="approved">Approved</TabsTrigger>
-          <TabsTrigger value="rejected">Rejected</TabsTrigger>
+        <TabsList className="w-full flex justify-start bg-gray-100 p-1">
+          <TabsTrigger value="all" className="flex-1 md:flex-none">
+            All
+            <span className="ml-2 bg-gray-200 text-gray-800 rounded-full px-2 py-0.5 text-xs">
+              {submissionCounts.all}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="pending" className="flex-1 md:flex-none">
+            Pending
+            <span className="ml-2 bg-yellow-100 text-yellow-800 rounded-full px-2 py-0.5 text-xs">
+              {submissionCounts.pending}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="approved" className="flex-1 md:flex-none">
+            Approved
+            <span className="ml-2 bg-green-100 text-green-800 rounded-full px-2 py-0.5 text-xs">
+              {submissionCounts.approved}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="rejected" className="flex-1 md:flex-none">
+            Rejected
+            <span className="ml-2 bg-red-100 text-red-800 rounded-full px-2 py-0.5 text-xs">
+              {submissionCounts.rejected}
+            </span>
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="all">
           {filteredSubmissions.length === 0 ? (
@@ -580,7 +719,10 @@ const AdminSubmissions: React.FC = () => {
         <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Submission Details</DialogTitle>
+              <DialogTitle className="flex items-center">
+                Submission Details
+                <span className="ml-2">{getStatusBadge(selectedSubmission.status)}</span>
+              </DialogTitle>
               <DialogDescription>
                 View and manage submission from {selectedSubmission.firstName} {selectedSubmission.lastName}
               </DialogDescription>
@@ -597,11 +739,20 @@ const AdminSubmissions: React.FC = () => {
                       poster="/placeholder.svg"
                     />
                   </AspectRatio>
-                  <div className="mt-2">
+                  <div className="mt-2 flex gap-2">
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="w-full"
+                      className="flex-1"
+                      onClick={() => handleOpenVideo(selectedSubmission)}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Fullscreen
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
                       onClick={() => handleDownload(selectedSubmission.id)}
                     >
                       <Download className="h-4 w-4 mr-2" />
@@ -619,6 +770,7 @@ const AdminSubmissions: React.FC = () => {
                       size="sm" 
                       className="flex-1 bg-green-50 hover:bg-green-100 border-green-200"
                       onClick={() => handleApprove(selectedSubmission.id)}
+                      disabled={selectedSubmission.status === 'approved'}
                     >
                       <Check className="h-4 w-4 mr-2 text-green-600" />
                       Approve
@@ -628,6 +780,7 @@ const AdminSubmissions: React.FC = () => {
                       size="sm" 
                       className="flex-1 bg-red-50 hover:bg-red-100 border-red-200"
                       onClick={() => handleReject(selectedSubmission.id)}
+                      disabled={selectedSubmission.status === 'rejected'}
                     >
                       <X className="h-4 w-4 mr-2 text-red-600" />
                       Reject
@@ -732,6 +885,46 @@ const AdminSubmissions: React.FC = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Video Fullscreen Modal */}
+      <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>
+        <DialogContent className="max-w-5xl max-h-screen p-1 bg-black rounded-lg">
+          <div className="relative">
+            <video
+              src={currentVideoUrl}
+              controls
+              autoPlay
+              className="w-full h-auto max-h-[80vh]"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsVideoModalOpen(false)}
+              className="absolute top-2 right-2 bg-black text-white border-gray-600"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmationDialog.isOpen} onOpenChange={closeConfirmationDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{confirmationDialog.title}</DialogTitle>
+            <DialogDescription>{confirmationDialog.message}</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={closeConfirmationDialog}>
+              Cancel
+            </Button>
+            <Button onClick={confirmationDialog.action}>
+              Confirm
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };

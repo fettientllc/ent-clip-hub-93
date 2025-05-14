@@ -14,6 +14,7 @@ export interface SubmissionData {
   parentLastName?: string;
   parentEmail?: string;
   videoPath?: string;
+  tempVideoPath?: string; // For temporary storage before approval
   folderPath: string;
   signatureProvided: boolean;
   submittedAt: string;
@@ -25,6 +26,7 @@ export interface SubmissionData {
   creditUsername?: string;
   paypalEmail?: string;
   adminNotes?: string;
+  uploadedToDropbox?: boolean;
 }
 
 // In-memory storage for demo purposes
@@ -37,13 +39,14 @@ const submissions: SubmissionData[] = [
     email: "john@example.com",
     location: "New York, NY",
     folderPath: "/submissions/2023-05-14_John_Doe",
-    videoPath: "/submissions/2023-05-14_John_Doe/video.mp4",
+    tempVideoPath: "/temp/2023-05-14_John_Doe/video.mp4",
     signatureProvided: true,
     submittedAt: "2025-05-12T15:30:00Z",
     status: 'pending',
     isOwnRecording: true,
     wantCredit: false,
-    paypalEmail: "john@paypal.com"
+    paypalEmail: "john@paypal.com",
+    uploadedToDropbox: false
   },
   {
     id: "sub-2",
@@ -53,7 +56,7 @@ const submissions: SubmissionData[] = [
     location: "Los Angeles, CA",
     description: "Short clip of sunset at the beach",
     folderPath: "/submissions/2023-05-13_Jane_Smith",
-    videoPath: "/submissions/2023-05-13_Jane_Smith/beach_sunset.mp4",
+    tempVideoPath: "/temp/2023-05-13_Jane_Smith/beach_sunset.mp4",
     signatureProvided: true,
     submittedAt: "2025-05-13T10:45:00Z",
     status: 'pending',
@@ -62,7 +65,8 @@ const submissions: SubmissionData[] = [
     wantCredit: true,
     creditPlatform: "Instagram",
     creditUsername: "@jane_captures",
-    paypalEmail: ""
+    paypalEmail: "",
+    uploadedToDropbox: false
   },
   {
     id: "sub-3",
@@ -71,12 +75,13 @@ const submissions: SubmissionData[] = [
     email: "michael@example.com",
     location: "Chicago, IL",
     folderPath: "/submissions/2023-05-14_Michael_Johnson",
-    videoPath: "/submissions/2023-05-14_Michael_Johnson/city_timelapse.mp4",
+    tempVideoPath: "/temp/2023-05-14_Michael_Johnson/city_timelapse.mp4",
     signatureProvided: false,
     submittedAt: "2025-05-14T09:20:00Z",
     status: 'pending',
     isOwnRecording: true,
-    wantCredit: false
+    wantCredit: false,
+    uploadedToDropbox: false
   }
 ];
 
@@ -131,6 +136,55 @@ export const useAdminService = () => {
     };
   };
 
+  // Upload to Dropbox after approval
+  const uploadToDropbox = async (submission: SubmissionData): Promise<boolean> => {
+    try {
+      console.log(`Uploading submission ${submission.id} to Dropbox...`);
+      
+      // Create the approved videos folder if it doesn't exist
+      const approvedFolder = await dropboxService.createFolder("/approved-videos");
+      
+      if (!approvedFolder) {
+        console.error("Failed to create approved videos folder");
+        return false;
+      }
+      
+      // In a real implementation, this would:
+      // 1. Get the temp file from storage
+      // 2. Upload it to the approved Dropbox folder
+      // 3. Get a shareable link
+      
+      // Create a specific folder for this submission in the approved videos folder
+      const submissionFolderPath = `/approved-videos/${submission.firstName}_${submission.lastName}_${submission.id}`;
+      const submissionFolder = await dropboxService.createFolder(submissionFolderPath);
+      
+      if (!submissionFolder) {
+        console.error(`Failed to create submission folder: ${submissionFolderPath}`);
+        return false;
+      }
+      
+      // In a real implementation, we would:
+      // 1. Get the temp video file
+      // const videoFile = await getTempVideoFile(submission.tempVideoPath);
+      // 2. Upload it to Dropbox
+      // const uploadResult = await dropboxService.uploadFile(videoFile, submissionFolderPath);
+      // 3. Create a shareable link
+      // const shareLink = await dropboxService.createSharedLink(uploadResult.path);
+      
+      // For this demo, we'll simulate a successful upload
+      console.log(`Video for submission ${submission.id} successfully uploaded to Dropbox`);
+      
+      // Update the submission with the "real" video path in Dropbox
+      const videoFileName = submission.tempVideoPath?.split('/').pop() || 'video.mp4';
+      const dropboxVideoPath = `${submissionFolderPath}/${videoFileName}`;
+      
+      return true;
+    } catch (error) {
+      console.error("Error uploading to Dropbox:", error);
+      return false;
+    }
+  };
+
   const approveSubmission = async (id: string): Promise<boolean> => {
     const submissionIndex = submissions.findIndex(s => s.id === id);
     
@@ -146,19 +200,39 @@ export const useAdminService = () => {
     try {
       const submission = submissions[submissionIndex];
       
-      // Create the approved videos folder if it doesn't exist
-      const approvedFolder = await dropboxService.createFolder("/approved-videos");
+      // Don't re-approve already approved submissions
+      if (submission.status === 'approved') {
+        toast({
+          title: "Already Approved",
+          description: "This submission has already been approved",
+        });
+        return true;
+      }
       
-      // In a real implementation, this would move files between folders
-      // For this demo, we'll just update the status
+      // Upload to Dropbox
+      const uploadSuccess = await uploadToDropbox(submission);
+      
+      if (!uploadSuccess) {
+        toast({
+          title: "Upload Error",
+          description: "Failed to upload video to Dropbox",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      // Update the submission status
       submissions[submissionIndex] = {
         ...submission,
-        status: 'approved'
+        status: 'approved',
+        uploadedToDropbox: true,
+        // In a real implementation, we'd set the videoPath to the Dropbox path
+        videoPath: submission.tempVideoPath
       };
       
       toast({
         title: "Submission Approved",
-        description: `${submission.firstName} ${submission.lastName}'s submission has been approved`,
+        description: `${submission.firstName} ${submission.lastName}'s submission has been approved and uploaded to Dropbox`,
       });
       
       return true;
@@ -186,6 +260,16 @@ export const useAdminService = () => {
     }
     
     const submission = submissions[submissionIndex];
+    
+    // Don't re-reject already rejected submissions
+    if (submission.status === 'rejected') {
+      toast({
+        title: "Already Rejected",
+        description: "This submission has already been rejected",
+      });
+      return true;
+    }
+    
     submissions[submissionIndex] = {
       ...submission,
       status: 'rejected'
@@ -249,7 +333,7 @@ export const useAdminService = () => {
   const downloadVideo = async (id: string): Promise<boolean> => {
     const submission = submissions.find(s => s.id === id);
     
-    if (!submission || !submission.videoPath) {
+    if (!submission || (!submission.videoPath && !submission.tempVideoPath)) {
       toast({
         title: "Error",
         description: "Video not found",
@@ -262,10 +346,13 @@ export const useAdminService = () => {
       // In a real implementation, this would download the actual file
       // For this demo, we'll simulate a download
       
+      // Choose which path to use
+      const videoPath = submission.videoPath || submission.tempVideoPath;
+      
       // Create a fake download link that would point to the video
       const a = document.createElement('a');
-      a.href = `https://example.com${submission.videoPath}`;
-      a.download = submission.videoPath.split('/').pop() || 'video.mp4';
+      a.href = `https://example.com${videoPath}`;
+      a.download = videoPath?.split('/').pop() || 'video.mp4';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -282,11 +369,11 @@ export const useAdminService = () => {
     }
   };
 
-  // New function to get the video URL for display
+  // Get the video URL for display
   const getVideoUrl = (id: string): string => {
     const submission = submissions.find(s => s.id === id);
     
-    if (!submission || !submission.videoPath) {
+    if (!submission || (!submission.videoPath && !submission.tempVideoPath)) {
       return '';
     }
     
@@ -314,6 +401,6 @@ export const useAdminService = () => {
     deleteSubmission,
     addSubmissionNote,
     downloadVideo,
-    getVideoUrl  // Expose the new function
+    getVideoUrl  
   };
 };
