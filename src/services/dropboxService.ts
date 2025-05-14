@@ -47,12 +47,13 @@ const getAccessToken = async (): Promise<string> => {
   // For demonstration, we'll use placeholder values
   const clientId = process.env.DROPBOX_CLIENT_ID || DROPBOX_APP_KEY;
   const clientSecret = process.env.DROPBOX_CLIENT_SECRET || "qxdg9tnwroye6xg";
-  const refreshToken = process.env.DROPBOX_REFRESH_TOKEN || "placeholder_refresh_token";
+  const refreshToken = process.env.DROPBOX_REFRESH_TOKEN || "sl.BgTxf6CXTVM4DXM1lVTZkppS9bW5bNMOFPTn5XgFf5GGmFExO6ZvQYsXGjjmOuRWxoOBqzHR2jLcDfppF3zEvuV2W34hXzCt9QsdU1BFBq7j8ycW4JKYi3WKvXzWa2fWZ_NbHjjV";
   
   try {
     // If this were a real server environment, we'd make this request server-side
     // For demonstration in a client-only app, we're making the request directly
     // In production, this should be moved to a secure server endpoint
+    console.log("Making token refresh request to Dropbox");
     const response = await fetch(`${DROPBOX_OAUTH_URL}/token`, {
       method: "POST",
       headers: {
@@ -68,10 +69,12 @@ const getAccessToken = async (): Promise<string> => {
     
     if (!response.ok) {
       const errorText = await response.text();
+      console.error("Dropbox token refresh failed:", response.status, errorText);
       throw new Error(`Failed to refresh token: ${response.status} ${errorText}`);
     }
     
     const data = await response.json();
+    console.log("Got new access token, expires in:", data.expires_in);
     
     // Cache the token with expiration time (14400 seconds / 4 hours)
     cachedToken = {
@@ -353,6 +356,7 @@ export const useDropboxService = () => {
   ): Promise<UploadResponse> => {
     try {
       const accessToken = await getAccessToken();
+      console.log("Using access token for upload:", accessToken.substring(0, 5) + "...");
       
       const xhr = new XMLHttpRequest();
       
@@ -385,18 +389,21 @@ export const useDropboxService = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
               const response = JSON.parse(xhr.responseText);
+              console.log("Dropbox upload successful:", response);
               resolve({
                 success: true,
                 fileId: response.id,
                 path: response.path_display,
               });
             } catch (e) {
+              console.error("Error parsing Dropbox response:", e);
               resolve({
                 success: false,
                 error: "Error parsing server response",
               });
             }
           } else {
+            console.error("Dropbox upload failed:", xhr.status, xhr.responseText);
             resolve({
               success: false,
               error: `Server returned error ${xhr.status}: ${xhr.responseText}`,
@@ -406,6 +413,7 @@ export const useDropboxService = () => {
         
         // Handle errors
         xhr.onerror = function() {
+          console.error("Network error during Dropbox upload");
           resolve({
             success: false,
             error: "Network error during upload",
