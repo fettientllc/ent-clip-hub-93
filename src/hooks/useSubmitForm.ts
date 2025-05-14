@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -9,7 +8,7 @@ import { useVideoHandler } from "./form/useVideoHandler";
 import { useFormDataBuilder } from "./form/useFormDataBuilder";
 import { formSchema } from "./form/formSchema";
 import { addSubmission } from "@/services/adminService";
-import { useDropboxService } from "@/services/dropboxService";
+import { useDropboxService, UploadResponse } from "@/services/dropboxService";
 
 // Extend the form schema type to include Cloudinary fields
 export type SubmitFormValues = z.infer<typeof formSchema> & {
@@ -156,7 +155,12 @@ export function useSubmitForm() {
       }
       
       // Now that we have the Cloudinary upload, let's also upload to Dropbox
-      let dropboxResult = { success: false, fileId: '', path: '', error: 'Not attempted' };
+      let dropboxResult: UploadResponse = { 
+        success: false, 
+        fileId: '', 
+        path: '', 
+        error: 'Not attempted' 
+      };
       
       try {
         // Create a submission folder in Dropbox
@@ -176,17 +180,15 @@ export function useSubmitForm() {
           });
           
           // Upload video to Dropbox
-          dropboxResult = await dropboxService.uploadFile(videoFile, targetFolder, 
+          dropboxResult = await dropboxService.uploadFile(
+            videoFile,
+            targetFolder, 
             (progress) => {
               console.log(`Dropbox upload progress: ${progress}%`);
             }
           );
           
           if (dropboxResult.success && dropboxResult.fileId) {
-            // Update form with Dropbox info
-            form.setValue('dropboxFileId', dropboxResult.fileId);
-            form.setValue('dropboxFilePath', dropboxResult.path || '');
-            
             console.log("File uploaded to Dropbox successfully:", dropboxResult);
           } else {
             console.warn("Dropbox upload issue:", dropboxResult.error);

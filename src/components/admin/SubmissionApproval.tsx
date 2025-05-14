@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useDropboxService } from '@/services/dropboxService';
-import { useSupabaseService } from "@/services/supabaseService";
+import { useSupabaseService, SubmissionRecord } from "@/services/supabaseService";
 import { CheckCircle, XCircle, Loader } from "lucide-react";
 
 interface SubmissionApprovalProps {
@@ -20,20 +20,20 @@ const SubmissionApproval: React.FC<SubmissionApprovalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const dropboxService = useDropboxService();
-  const { approveSubmission, rejectSubmission, getSubmission } = useSupabaseService();
+  const supabaseService = useSupabaseService();
 
   const handleApprove = async () => {
     setIsProcessing(true);
     try {
       // First update the status in Supabase
-      const approvalResult = await approveSubmission(submissionId);
+      const approvalResult = await supabaseService.approveSubmission(submissionId);
       
       if (!approvalResult) {
         throw new Error("Failed to approve submission in the database");
       }
       
       // Get submission information to find the Dropbox path
-      const submission = await getSubmission(submissionId);
+      const submission = await supabaseService.getSubmission(submissionId);
       if (submission && submission.dropboxVideoPath) {
         // Extract the file name from the path
         const fileName = submission.dropboxVideoPath.split('/').pop();

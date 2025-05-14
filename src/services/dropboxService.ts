@@ -1,4 +1,3 @@
-
 import { useToast } from "@/hooks/use-toast";
 
 // Dropbox API credentials - these will be replaced with env variables
@@ -21,11 +20,12 @@ interface UploadProgressCallback {
   (progress: number): void;
 }
 
-interface UploadResponse {
+// Update the interface to make all properties required
+export interface UploadResponse {
   success: boolean;
-  fileId?: string;
-  path?: string;
-  error?: string;
+  fileId: string; // Changed from optional to required
+  path: string;   // Changed from optional to required
+  error: string;  // Always include an error message, even if empty
 }
 
 /**
@@ -176,6 +176,8 @@ export const useDropboxService = () => {
       });
       return {
         success: false,
+        fileId: '', // Always provide a value, even if empty
+        path: '',   // Always provide a value, even if empty
         error: (error as Error).message,
       };
     }
@@ -223,6 +225,14 @@ export const useDropboxService = () => {
           })
         );
         
+        // Track upload progress
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable && onProgress) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            onProgress(percentComplete);
+          }
+        };
+        
         // Handle completion
         xhr.onload = function() {
           if (xhr.status >= 200 && xhr.status < 300) {
@@ -230,18 +240,23 @@ export const useDropboxService = () => {
               const response = JSON.parse(xhr.responseText);
               resolve({
                 success: true,
-                fileId: response.id,
-                path: response.path_display,
+                fileId: response.id || '', // Ensure fileId is always defined
+                path: response.path_display || '', // Ensure path is always defined
+                error: '', // Empty error message for success case
               });
             } catch (e) {
               resolve({
                 success: false,
+                fileId: '', // Empty fileId for error case
+                path: '',   // Empty path for error case
                 error: "Error parsing server response",
               });
             }
           } else {
             resolve({
               success: false,
+              fileId: '', // Empty fileId for error case
+              path: '',   // Empty path for error case
               error: `Server returned error ${xhr.status}: ${xhr.responseText}`,
             });
           }
@@ -251,6 +266,8 @@ export const useDropboxService = () => {
         xhr.onerror = function() {
           resolve({
             success: false,
+            fileId: '', // Empty fileId for error case
+            path: '',   // Empty path for error case
             error: "Network error during upload",
           });
         };
@@ -262,6 +279,8 @@ export const useDropboxService = () => {
       console.error("Text file upload error:", error);
       return {
         success: false,
+        fileId: '', // Always provide a value, even if empty
+        path: '',   // Always provide a value, even if empty
         error: (error as Error).message,
       };
     }
@@ -393,13 +412,16 @@ export const useDropboxService = () => {
               console.log("Dropbox upload successful:", response);
               resolve({
                 success: true,
-                fileId: response.id,
-                path: response.path_display,
+                fileId: response.id || '', // Ensure fileId is always defined
+                path: response.path_display || '', // Ensure path is always defined
+                error: '', // Empty error message for success case
               });
             } catch (e) {
               console.error("Error parsing Dropbox response:", e);
               resolve({
                 success: false,
+                fileId: '', // Empty fileId for error case
+                path: '',   // Empty path for error case
                 error: "Error parsing server response",
               });
             }
@@ -407,6 +429,8 @@ export const useDropboxService = () => {
             console.error("Dropbox upload failed:", xhr.status, xhr.responseText);
             resolve({
               success: false,
+              fileId: '', // Empty fileId for error case
+              path: '',   // Empty path for error case
               error: `Server returned error ${xhr.status}: ${xhr.responseText}`,
             });
           }
@@ -417,6 +441,8 @@ export const useDropboxService = () => {
           console.error("Network error during Dropbox upload");
           resolve({
             success: false,
+            fileId: '', // Empty fileId for error case
+            path: '',   // Empty path for error case
             error: "Network error during upload",
           });
         };
@@ -428,6 +454,8 @@ export const useDropboxService = () => {
       console.error("Small file upload error:", error);
       return {
         success: false,
+        fileId: '', // Always provide a value, even if empty
+        path: '',   // Always provide a value, even if empty
         error: (error as Error).message,
       };
     }
@@ -474,12 +502,15 @@ export const useDropboxService = () => {
       return {
         success: true,
         fileId: `simulated_${Date.now()}`,
-        path,
+        path: path,
+        error: '', // Empty error message for success case
       };
     } catch (error) {
       console.error("Large file upload error:", error);
       return {
         success: false,
+        fileId: '', // Always provide a value, even if empty
+        path: '',   // Always provide a value, even if empty
         error: (error as Error).message,
       };
     }

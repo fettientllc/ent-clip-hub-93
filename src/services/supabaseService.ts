@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { useToast } from "@/hooks/use-toast";
 
@@ -168,6 +167,41 @@ export const useSupabaseService = () => {
   };
 
   /**
+   * Get a specific submission by ID from the database
+   */
+  const getSubmission = async (id: string): Promise<SubmissionRecord | null> => {
+    if (!checkSupabase()) return null;
+    
+    try {
+      const { data, error } = await supabase!
+        .from('submissions')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        console.error('Supabase Database error:', error);
+        toast({
+          title: 'Fetch Error',
+          description: `Failed to fetch submission: ${error.message}`,
+          variant: 'destructive',
+        });
+        return null;
+      }
+      
+      return data || null;
+    } catch (error) {
+      console.error('Fetch error:', error);
+      toast({
+        title: 'Fetch Error',
+        description: `An unexpected error occurred: ${(error as Error).message}`,
+        variant: 'destructive',
+      });
+      return null;
+    }
+  };
+
+  /**
    * Get all submissions from the database
    */
   const getSubmissions = async (): Promise<SubmissionRecord[]> => {
@@ -307,6 +341,7 @@ export const useSupabaseService = () => {
     uploadFileToStorage,
     saveSubmission,
     getSubmissions,
+    getSubmission,
     approveSubmission,
     rejectSubmission,
     sendConfirmationEmail,
