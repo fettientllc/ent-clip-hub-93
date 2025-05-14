@@ -27,7 +27,7 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({ form }) =
         name="location"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Where was this filmed?</FormLabel>
+            <FormLabel className="text-black font-bold">Where was this filmed?</FormLabel>
             <FormControl>
               <div className="relative">
                 <Input 
@@ -65,7 +65,7 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({ form }) =
         render={({ field }) => (
           <FormItem className="flex flex-row items-center justify-between rounded-lg border border-gray-200 p-4">
             <div className="space-y-0.5">
-              <FormLabel className="text-base">Add clip description? (optional)</FormLabel>
+              <FormLabel className="text-black font-bold text-base">Add clip description? (optional)</FormLabel>
             </div>
             <FormControl>
               <Switch
@@ -83,7 +83,7 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({ form }) =
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Tell us about your clip</FormLabel>
+              <FormLabel className="text-black font-bold">Tell us about your clip</FormLabel>
               <FormControl>
                 <Textarea 
                   placeholder="Describe the context, what happens in the video, etc." 
@@ -106,7 +106,7 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({ form }) =
         render={({ field }) => (
           <FormItem className="flex flex-row items-center justify-between rounded-lg border border-gray-200 p-4">
             <div className="space-y-0.5">
-              <FormLabel className="text-base">Did you record this clip?</FormLabel>
+              <FormLabel className="text-black font-bold text-base">Did you record this clip?</FormLabel>
             </div>
             <FormControl>
               <Switch
@@ -124,7 +124,7 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({ form }) =
         render={({ field }) => (
           <FormItem className="flex flex-row items-center justify-between rounded-lg border border-gray-200 p-4">
             <div className="space-y-0.5">
-              <FormLabel className="text-base">Want clip credit? (optional)</FormLabel>
+              <FormLabel className="text-black font-bold text-base">Want clip credit? (optional)</FormLabel>
             </div>
             <FormControl>
               <Switch
@@ -143,7 +143,7 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({ form }) =
             name="creditPlatform"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Platform</FormLabel>
+                <FormLabel className="text-black font-bold">Platform</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -169,7 +169,7 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({ form }) =
             name="creditUsername"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Handle or Username to credit</FormLabel>
+                <FormLabel className="text-black font-bold">Handle or Username to credit</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input 
@@ -197,7 +197,7 @@ const AdditionalInfoSection: React.FC<AdditionalInfoSectionProps> = ({ form }) =
         name="paypalEmail"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>PayPal Email</FormLabel>
+            <FormLabel className="text-black font-bold">PayPal Email</FormLabel>
             <FormControl>
               <div className="relative">
                 <Input 

@@ -1,9 +1,10 @@
 
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { 
+  FormField, FormItem, FormLabel, FormControl, FormMessage 
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { SubmitFormValues } from '@/hooks/useSubmitForm';
 
 interface PersonalInfoSectionProps {
@@ -12,16 +13,22 @@ interface PersonalInfoSectionProps {
 
 const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ form }) => {
   return (
-    <>
-      <div className="flex gap-4">
+    <div className="space-y-6">
+      <h3 className="text-lg font-medium">Personal Information</h3>
+      
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <FormField
           control={form.control}
           name="firstName"
           render={({ field }) => (
-            <FormItem className="flex-1">
-              <FormLabel>First Name</FormLabel>
+            <FormItem>
+              <FormLabel className="text-black font-bold">First Name</FormLabel>
               <FormControl>
-                <Input placeholder="First Name" {...field} className="bg-white border-gray-300 text-gray-900" />
+                <Input 
+                  placeholder="John" 
+                  {...field} 
+                  className="bg-white border-gray-300 text-gray-900" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -32,10 +39,14 @@ const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ form }) => {
           control={form.control}
           name="lastName"
           render={({ field }) => (
-            <FormItem className="flex-1">
-              <FormLabel>Last Name</FormLabel>
+            <FormItem>
+              <FormLabel className="text-black font-bold">Last Name</FormLabel>
               <FormControl>
-                <Input placeholder="Last Name" {...field} className="bg-white border-gray-300 text-gray-900" />
+                <Input 
+                  placeholder="Doe" 
+                  {...field} 
+                  className="bg-white border-gray-300 text-gray-900" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -48,47 +59,20 @@ const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({ form }) => {
         name="email"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Email</FormLabel>
+            <FormLabel className="text-black font-bold">Email</FormLabel>
             <FormControl>
-              <Input placeholder="Email" {...field} className="bg-white border-gray-300 text-gray-900" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      
-      <FormField
-        control={form.control}
-        name="location"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Location</FormLabel>
-            <FormControl>
-              <Input placeholder="Where was this filmed?" {...field} className="bg-white border-gray-300 text-gray-900" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      
-      <FormField
-        control={form.control}
-        name="description"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Description</FormLabel>
-            <FormControl>
-              <Textarea 
-                placeholder="Tell us about your clip" 
+              <Input 
+                placeholder="johndoe@example.com" 
+                type="email"
                 {...field} 
-                className="bg-white border-gray-300 min-h-[100px] text-gray-900" 
+                className="bg-white border-gray-300 text-gray-900" 
               />
             </FormControl>
             <FormMessage />
           </FormItem>
         )}
       />
-    </>
+    </div>
   );
 };
 
