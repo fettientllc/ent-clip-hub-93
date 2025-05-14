@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdminService, DashboardStats, SubmissionData } from '@/services/adminService';
@@ -14,12 +13,35 @@ import { Link } from 'react-router-dom';
 
 const AdminDashboard: React.FC = () => {
   const { getDashboardStats, getSubmissions, getVideoUrl } = useAdminService();
-  const stats = getDashboardStats();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalSubmissions: 0,
+    pendingSubmissions: 0,
+    approvedSubmissions: 0,
+    rejectedSubmissions: 0,
+    dailySubmissions: 0,
+    weeklySubmissions: 0,
+    monthlySubmissions: 0,
+    totalUsers: 0
+  });
+  const [recentSubmissions, setRecentSubmissions] = useState<SubmissionData[]>([]);
   
-  // Get the most recent submissions for the dashboard
-  const recentSubmissions = getSubmissions()
-    .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
-    .slice(0, 3);
+  // Use effect to fetch the latest data when the component mounts
+  useEffect(() => {
+    refreshData();
+  }, []);
+  
+  // Function to refresh dashboard data
+  const refreshData = () => {
+    // Get the latest stats
+    setStats(getDashboardStats());
+    
+    // Get the most recent submissions for the dashboard
+    const latest = getSubmissions()
+      .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+      .slice(0, 3);
+      
+    setRecentSubmissions(latest);
+  };
 
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -55,9 +77,12 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <AdminLayout title="Dashboard">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-gray-500">{formattedDate}</p>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <p className="text-gray-500">{formattedDate}</p>
+        </div>
+        <Button onClick={refreshData}>Refresh Data</Button>
       </div>
 
       {/* Add the workflow explainer component at the top of the dashboard */}
@@ -141,11 +166,16 @@ const AdminDashboard: React.FC = () => {
           
           {/* Recent Submissions Section */}
           <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Recent Submissions</CardTitle>
-              <CardDescription>
-                The latest video submissions waiting for review
-              </CardDescription>
+            <CardHeader className="flex flex-row justify-between items-center">
+              <div>
+                <CardTitle>Recent Submissions</CardTitle>
+                <CardDescription>
+                  The latest video submissions waiting for review
+                </CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={refreshData}>
+                Refresh
+              </Button>
             </CardHeader>
             <CardContent>
               {recentSubmissions.length === 0 ? (

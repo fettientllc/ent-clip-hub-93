@@ -146,7 +146,7 @@ export const useAdminService = () => {
     };
   };
 
-  // Upload to Dropbox after approval
+  // Upload to Dropbox after approval - implementing the proposed workflow
   const uploadToDropbox = async (submission: SubmissionData): Promise<boolean> => {
     try {
       console.log(`Uploading submission ${submission.id} to Dropbox...`);
@@ -159,10 +159,12 @@ export const useAdminService = () => {
         return false;
       }
       
-      // In a real implementation, this would:
-      // 1. Get the temp file from storage
-      // 2. Upload it to the approved Dropbox folder
-      // 3. Get a shareable link
+      /* In a real implementation with the proposed workflow, this would:
+         1. Get the file from temporary storage (AWS S3, Cloudinary, Firebase)
+         2. Upload it to the permanent Dropbox location
+         3. Delete it from the temporary storage to save space
+         4. Update submission records with the new permanent path
+      */
       
       // Create a specific folder for this submission in the approved videos folder
       const submissionFolderPath = `/approved-videos/${submission.firstName}_${submission.lastName}_${submission.id}`;
@@ -173,15 +175,16 @@ export const useAdminService = () => {
         return false;
       }
       
-      // In a real implementation, we would:
-      // 1. Get the temp video file
-      // const videoFile = await getTempVideoFile(submission.tempVideoPath);
+      // In a real implementation with the proposed workflow:
+      // 1. Get the temp video file from cloud storage
+      // const videoFile = await getVideoFromTemporaryStorage(submission.tempVideoPath);
       // 2. Upload it to Dropbox
       // const uploadResult = await dropboxService.uploadFile(videoFile, submissionFolderPath);
       // 3. Create a shareable link
       // const shareLink = await dropboxService.createSharedLink(uploadResult.path);
+      // 4. Delete from temporary storage
+      // await deleteFromTemporaryStorage(submission.tempVideoPath);
       
-      // For this demo, we'll simulate a successful upload
       console.log(`Video for submission ${submission.id} successfully uploaded to Dropbox`);
       
       // Update the submission with the "real" video path in Dropbox
@@ -414,6 +417,3 @@ export const useAdminService = () => {
     getVideoUrl  
   };
 };
-
-// Remove the duplicate export here - this was causing the error
-// export { addSubmission };

@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "./use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useVideoHandler } from "./form/useVideoHandler";
 import { useFormDataBuilder } from "./form/useFormDataBuilder";
 import { useSimulatedUploadService } from '@/services/simulatedUploadService';
@@ -101,8 +101,11 @@ export function useSubmitForm() {
         return;
       }
       
+      // Create a timestamp for the submission
+      const submittedAt = new Date().toISOString();
+      
       // Add submission to admin service
-      addSubmission({
+      const submissionId = addSubmission({
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
@@ -111,7 +114,7 @@ export function useSubmitForm() {
         folderPath: folderPath,
         tempVideoPath: data.dropboxFilePath,
         signatureProvided: !!data.signature,
-        submittedAt: new Date().toISOString(),
+        submittedAt: submittedAt,
         status: 'pending',
         isOwnRecording: data.isOwnRecording,
         recorderName: !data.isOwnRecording ? data.recorderName : undefined,
@@ -122,6 +125,8 @@ export function useSubmitForm() {
         uploadedToDropbox: false
       });
       
+      console.log("Added submission with ID:", submissionId);
+      
       // Simulate API submission delay
       await new Promise(resolve => setTimeout(resolve, 1500));
       
@@ -131,7 +136,7 @@ export function useSubmitForm() {
         description: "Thank you for your submission.",
       });
       
-      // Redirect to thank you confirmation page (fixed URL)
+      // Redirect to thank you confirmation page
       navigate("/thank-you-confirmation");
       
     } catch (error) {

@@ -1,48 +1,37 @@
 
-import * as React from "react";
-import { toast as sonnerToast, ToastT, Toast } from "sonner";
+import * as React from "react"
+import {
+  Toast,
+  ToastClose,
+  ToastDescription,
+  ToastProvider,
+  ToastTitle,
+  ToastViewport,
+} from "@/components/ui/toast"
+import { useToast as useToastOriginal } from "@/components/ui/toast"
 
-export type ToastProps = React.ComponentProps<typeof Toast>;
-export type ToastActionElement = React.ReactElement<typeof ToastAction>;
+export function Toaster() {
+  const { toasts } = useToastOriginal()
 
-export const useToast = () => {
-  const toast = (props: ToastT) => {
-    sonnerToast(props.title, {
-      description: props.description,
-      duration: props.duration,
-      action: props.action,
-      icon: props.icon,
-      id: props.id,
-      className: props.variant ? `toast-${props.variant}` : '',
-    });
-  };
-  
-  return { toast };
-};
-
-export const toast = (props: ToastT) => {
-  sonnerToast(props.title, {
-    description: props.description,
-    duration: props.duration,
-    action: props.action,
-    icon: props.icon,
-    id: props.id,
-    className: props.variant ? `toast-${props.variant}` : '',
-  });
-};
-
-interface ToastActionProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  altText?: string;
+  return (
+    <ToastProvider>
+      {toasts.map(function ({ id, title, description, action, ...props }) {
+        return (
+          <Toast key={id} {...props}>
+            <div className="grid gap-1">
+              {title && <ToastTitle>{title}</ToastTitle>}
+              {description && (
+                <ToastDescription>{description}</ToastDescription>
+              )}
+            </div>
+            {action}
+            <ToastClose />
+          </Toast>
+        )
+      })}
+      <ToastViewport />
+    </ToastProvider>
+  )
 }
 
-export const ToastAction = React.forwardRef<HTMLButtonElement, ToastActionProps>(
-  ({ className, altText, ...props }, ref) => (
-    <button
-      ref={ref}
-      className={className}
-      {...props}
-    />
-  )
-);
-
-ToastAction.displayName = "ToastAction";
+export { useToastOriginal as useToast, toast } from "@/components/ui/toast"
