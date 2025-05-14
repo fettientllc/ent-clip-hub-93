@@ -401,7 +401,7 @@ export const useDropboxService = () => {
           })
         );
         
-        // Track upload progress
+        // Track upload progress - Fixed: onprogress instead of onProgress
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable && onProgress) {
             const percentComplete = Math.round((event.loaded / event.total) * 100);
