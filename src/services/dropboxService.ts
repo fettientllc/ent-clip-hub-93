@@ -428,6 +428,7 @@ export const useDropboxService = () => {
     uploadFile,
     uploadFormDataAsTextFile,
     createSharedLink,
-    createSubmissionFolder
+    createSubmissionFolder,
+    createFolder // Explicitly include the createFolder method in the returned object
   };
 };
