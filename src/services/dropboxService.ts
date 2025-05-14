@@ -1,4 +1,3 @@
-
 import { useToast } from "@/hooks/use-toast";
 
 // Dropbox API credentials
@@ -52,6 +51,95 @@ export const useDropboxService = () => {
       toast({
         title: "Upload Error",
         description: `Failed to upload to Dropbox: ${(error as Error).message}`,
+        variant: "destructive",
+      });
+      return {
+        success: false,
+        error: (error as Error).message,
+      };
+    }
+  };
+
+  /**
+   * Upload JSON data as a file to Dropbox
+   * @param data The JSON data to upload
+   * @param filename The filename to use
+   * @returns Promise with upload response
+   */
+  const uploadFormDataAsJson = async (
+    data: Record<string, any>,
+    filename: string
+  ): Promise<UploadResponse> => {
+    try {
+      // Create a JSON string from the data
+      const jsonString = JSON.stringify(data, null, 2);
+      // Create a Blob from the JSON string
+      const jsonBlob = new Blob([jsonString], { type: 'application/json' });
+      
+      // File path in Dropbox - we'll put form data in a forms subfolder
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const path = `/forms/${timestamp}_${filename}`;
+      
+      // Use the XMLHttpRequest to upload the JSON data
+      const xhr = new XMLHttpRequest();
+      
+      // Create a promise to handle the async upload
+      return new Promise((resolve) => {
+        xhr.open("POST", `${DROPBOX_API_URL}/files/upload`, true);
+        
+        // Set Dropbox headers
+        xhr.setRequestHeader("Authorization", `Bearer ${DROPBOX_ACCESS_TOKEN}`);
+        xhr.setRequestHeader("Content-Type", "application/octet-stream");
+        xhr.setRequestHeader(
+          "Dropbox-API-Arg",
+          JSON.stringify({
+            path,
+            mode: "add",
+            autorename: true,
+            mute: false,
+          })
+        );
+        
+        // Handle completion
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              resolve({
+                success: true,
+                fileId: response.id,
+                path: response.path_display,
+              });
+            } catch (e) {
+              resolve({
+                success: false,
+                error: "Error parsing server response",
+              });
+            }
+          } else {
+            resolve({
+              success: false,
+              error: `Server returned error ${xhr.status}: ${xhr.responseText}`,
+            });
+          }
+        };
+        
+        // Handle errors
+        xhr.onerror = function() {
+          resolve({
+            success: false,
+            error: "Network error during upload",
+          });
+        };
+        
+        // Upload the JSON blob
+        xhr.send(jsonBlob);
+      });
+    } catch (error) {
+      console.error("Form data upload error:", error);
+      toast({
+        title: "Upload Error",
+        description: `Failed to save form data to Dropbox: ${(error as Error).message}`,
         variant: "destructive",
       });
       return {
@@ -216,6 +304,7 @@ export const useDropboxService = () => {
 
   return {
     uploadFile,
+    uploadFormDataAsJson,
     createSharedLink,
   };
 };

@@ -6,9 +6,9 @@ import { useNavigate } from 'react-router-dom';
 import { formSchema } from './form/formSchema';
 import type { SubmitFormValues } from './form/formSchema';
 import { useFormDataBuilder } from './form/useFormDataBuilder';
-import { useFormUploader } from './form/useFormUploader';
 import { useVideoHandler } from './form/useVideoHandler';
 import { useToast } from "@/hooks/use-toast";
+import { useDropboxService } from '@/services/dropboxService';
 
 // Use "export type" to fix the TS1205 error
 export type { SubmitFormValues } from './form/formSchema';
@@ -16,9 +16,9 @@ export type { SubmitFormValues } from './form/formSchema';
 export const useSubmitForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<FormData | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { uploadFormDataAsJson } = useDropboxService();
 
   const form = useForm<SubmitFormValues>({
     resolver: zodResolver(formSchema),
@@ -40,24 +40,6 @@ export const useSubmitForm = () => {
   
   const { videoFileName, setVideoFileName, handleVideoChange } = useVideoHandler(form);
   const { buildFormData } = useFormDataBuilder();
-  const { uploadProgress, timeoutWarning, uploadSpeed, networkStatus, executeUpload } = useFormUploader({
-    onSuccess: () => {
-      setSubmitting(false);
-      setFormData(null); // Clear stored form data
-      
-      toast({
-        title: "Form submitted successfully!",
-        description: "Your video has been saved to Dropbox and your form information has been submitted.",
-        duration: 8000,
-      });
-      
-      navigate('/thank-you-confirmation');
-    },
-    onError: (errorMessage) => {
-      setUploadError(errorMessage);
-      setSubmitting(false);
-    }
-  });
 
   const onSubmit = async (data: SubmitFormValues) => {
     // First, check if we have selected a video
@@ -79,30 +61,49 @@ export const useSubmitForm = () => {
       return;
     }
 
-    // Check for offline state before attempting form submission
-    if (networkStatus === 'offline') {
-      setUploadError("You appear to be offline. Please check your internet connection before submitting.");
-      return;
-    }
-
     try {
       setSubmitting(true);
       setUploadError(null);
       
-      const uploadFormData = buildFormData(data);
+      // Create a JSON representation of the form data
+      const formDataObject = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        location: data.location,
+        description: data.description || "",
+        agreeTerms: data.agreeTerms,
+        noOtherSubmission: data.noOtherSubmission,
+        keepInTouch: data.keepInTouch || false,
+        signatureProvided: !!data.signature,
+        videoFileName: data.video.name,
+        dropboxFileId: data.dropboxFileId,
+        dropboxFilePath: data.dropboxFilePath,
+        submittedAt: new Date().toISOString(),
+      };
       
-      // Save the form data for potential retries
-      setFormData(uploadFormData);
+      console.log("Submitting form data to Dropbox...");
       
-      console.log("Submitting form data...");
-      console.log(`Video already uploaded to Dropbox with ID: ${data.dropboxFileId}`);
+      // Upload the form data as a JSON file to Dropbox
+      const result = await uploadFormDataAsJson(
+        formDataObject, 
+        `${data.firstName}_${data.lastName}_submission.json`
+      );
       
-      // Add a flag indicating we're using the Dropbox workflow
-      uploadFormData.append('usingDropboxWorkflow', 'true');
-      
-      // Execute the upload with the form data (which now contains Dropbox file reference)
-      executeUpload(uploadFormData);
-      
+      if (result.success) {
+        setSubmitting(false);
+        
+        toast({
+          title: "Form submitted successfully!",
+          description: "Your video and form information have been saved to Dropbox.",
+          duration: 8000,
+        });
+        
+        navigate('/thank-you-confirmation');
+      } else {
+        setUploadError(result.error || "Failed to save form data");
+        setSubmitting(false);
+      }
     } catch (error) {
       console.error("Form submission error:", error);
       setUploadError("There was a problem submitting your form. Please try again.");
@@ -110,16 +111,14 @@ export const useSubmitForm = () => {
     }
   };
   
-  // Retry form submission
+  // Retry form submission if it failed
   const retryUpload = () => {
-    if (formData) {
+    const data = form.getValues();
+    if (data) {
       setSubmitting(true);
       setUploadError(null);
-      
-      // Reuse the stored form data for retry
-      executeUpload(formData);
+      onSubmit(data);
     } else {
-      // If no stored form data (unlikely), ask user to submit again
       setUploadError("Please submit the form again.");
     }
   };
@@ -136,11 +135,7 @@ export const useSubmitForm = () => {
     setVideoFileName,
     handleVideoChange,
     handleSignatureChange,
-    uploadProgress,
     uploadError,
-    timeoutWarning,
-    uploadSpeed,
-    networkStatus,
     retryUpload
   };
 };

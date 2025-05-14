@@ -10,7 +10,6 @@ import LegalSection from '@/components/submit-form/LegalSection';
 import SignatureSection from '@/components/submit-form/SignatureSection';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader, AlertTriangle, WifiOff, RefreshCw, Info } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
 
 const Submit: React.FC = () => {
   const { 
@@ -21,10 +20,7 @@ const Submit: React.FC = () => {
     setVideoFileName, 
     handleVideoChange, 
     handleSignatureChange,
-    uploadProgress,
     uploadError,
-    timeoutWarning,
-    networkStatus,
     retryUpload
   } = useSubmitForm();
   
@@ -58,29 +54,6 @@ const Submit: React.FC = () => {
   const videoFileSize = videoFile instanceof File ? formatFileSize(videoFile.size) : null;
   const isLargeFile = videoFile instanceof File && videoFile.size > 100 * 1024 * 1024;
 
-  const renderNetworkAlert = () => {
-    if (networkStatus === 'offline') {
-      return (
-        <Alert className="bg-red-50 border-red-200 text-red-800 mt-4">
-          <WifiOff className="h-4 w-4 text-red-600" />
-          <AlertDescription className="font-bold">
-            You are currently offline. Please check your internet connection before submitting.
-          </AlertDescription>
-        </Alert>
-      );
-    } else if (networkStatus === 'slow') {
-      return (
-        <Alert className="bg-amber-50 border-amber-200 text-amber-800 mt-4">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="font-bold">
-            Your internet connection appears to be slow. Uploads may take longer than expected.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    return null;
-  };
-  
   const renderFileSizeWarning = () => {
     if (isLargeFile) {
       return (
@@ -105,8 +78,6 @@ const Submit: React.FC = () => {
       <Form {...form}>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PersonalInfoSection form={form} />
-          
-          {renderNetworkAlert()}
           
           <VideoUploadSection 
             form={form} 
@@ -167,7 +138,6 @@ const Submit: React.FC = () => {
                     size="sm" 
                     onClick={retryUpload} 
                     className="mt-2 flex items-center gap-2"
-                    disabled={networkStatus === 'offline'}
                   >
                     <RefreshCw className="h-4 w-4" />
                     Retry Submission
@@ -186,7 +156,7 @@ const Submit: React.FC = () => {
           
           <Button 
             type="submit" 
-            disabled={submitting || networkStatus === 'offline' || !videoUploaded}
+            disabled={submitting || !videoUploaded}
             className="w-full bg-[#6C63FF] hover:bg-[#5952cc] text-white font-bold py-4 text-lg uppercase mt-6"
           >
             {submitting ? (
@@ -207,19 +177,8 @@ const Submit: React.FC = () => {
             <div className="mt-4">
               <div className="flex flex-col space-y-2">
                 <p className="text-sm text-center text-gray-600">
-                  Submitting your form... Please don't close this page.
-                  {uploadProgress > 0 && ` (${uploadProgress}% complete)`}
+                  Submitting your form to Dropbox... Please don't close this page.
                 </p>
-                <Progress className="h-2" value={uploadProgress} />
-                
-                {timeoutWarning && (
-                  <Alert className="mt-2 border-amber-300 bg-amber-50 text-amber-800">
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    <AlertDescription>
-                      Submission is taking longer than expected. Please wait...
-                    </AlertDescription>
-                  </Alert>
-                )}
               </div>
             </div>
           )}

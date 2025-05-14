@@ -2,6 +2,11 @@
 import { SubmitFormValues } from './formSchema';
 
 export function useFormDataBuilder() {
+  /**
+   * Build a FormData object from the form values
+   * Note: This is now only used for reference, as we're
+   * saving directly to Dropbox as JSON instead
+   */
   const buildFormData = (data: SubmitFormValues): FormData => {
     const formData = new FormData();
     formData.append('firstName', data.firstName);
@@ -15,12 +20,11 @@ export function useFormDataBuilder() {
 
     if (data.description) formData.append('description', data.description);
     
-    // Add Dropbox file information instead of the actual file
+    // Add Dropbox file information
     if (data.dropboxFileId) formData.append('dropboxFileId', data.dropboxFileId);
     if (data.dropboxFilePath) formData.append('dropboxFilePath', data.dropboxFilePath);
     
-    // We still include the video file name for reference, but not the actual file
-    // since it's already uploaded to Dropbox
+    // Include the video file name for reference
     if (data.video instanceof File) {
       formData.append('videoFileName', data.video.name);
     }
