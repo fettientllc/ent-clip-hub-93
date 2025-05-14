@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useState, useEffect } from "react";
 import { UseFormReturn } from "react-hook-form";
@@ -150,7 +151,7 @@ export function useVideoHandler(form: UseFormReturn<SubmitFormValues>) {
       toast({
         title: "Very large file",
         description: "This video is extremely large and may take a long time to upload.",
-        variant: "warning",
+        variant: "warning", // Now using the warning variant which we've added support for
         duration: 10000,
       });
     }
